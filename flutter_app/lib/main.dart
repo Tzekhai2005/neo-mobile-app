@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'ui/webview_shell.dart';
+import 'ui/standalone_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -8,6 +8,10 @@ void main() {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Color(0xFF090c15),
+    statusBarIconBrightness: Brightness.light,
+  ));
   runApp(const NeoCompanionApp());
 }
 
@@ -29,7 +33,7 @@ class NeoCompanionApp extends StatelessWidget {
           surface: Color(0xFF0f1422),
         ),
       ),
-      home: const WebViewShell(),
+      home: const StandaloneScreen(),
     );
   }
 }

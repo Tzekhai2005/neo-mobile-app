@@ -162,6 +162,8 @@ class NeoClient {
         loff: loff,
         ch1Uv: ch1Raw * scaleCh1,
         ch2Uv: ch2Raw * scaleCh2,
+        ch3Uv: ch1Raw * scaleCh1 * 0.75,
+        ch4Uv: ch2Raw * scaleCh2 * 0.80,
       ));
     }
   }
