@@ -208,6 +208,69 @@ class _MonitorScreenState extends State<MonitorScreen> with SingleTickerProvider
       ),
       body: Column(
         children: [
+          // Crystal-Clear Telemetry Data Source Bar
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: _useHardware ? const Color(0x1A10B981) : const Color(0x1AA855F7),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _useHardware ? const Color(0x6610B981) : const Color(0x66A855F7),
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _useHardware ? const Color(0x3310B981) : const Color(0x33A855F7),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _useHardware ? "LIVE HARDWARE" : "INTERNAL SIM",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: _useHardware ? const Color(0xFF6EE7B7) : const Color(0xFFD8B4FE),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _useHardware ? "ADS1292R Ear-EEG (Live)" : "Autonomous Pitch Simulator",
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _useHardware = !_useHardware;
+                      _startDataStream();
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0x22FFFFFF),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0x33FFFFFF)),
+                    ),
+                    child: Text(
+                      _useHardware ? "Use Sim" : "Use HW",
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // High-Visibility Seizure Status Banner
           Container(
             margin: const EdgeInsets.all(12),

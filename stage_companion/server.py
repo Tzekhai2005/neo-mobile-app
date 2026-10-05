@@ -58,7 +58,10 @@ def make_cmd_frame(cmd_id: int, params: bytes = b"", seq: int = 1) -> bytes:
 class SharedState:
     def __init__(self):
         self.lock = threading.Lock()
-        self.source_mode = "SIMULATOR"  # "NEO_FAKE" or "SIMULATOR"
+        self.manual_override = False
+        self.source_mode = "INTERNAL_SIM"  # "INTERNAL_SIM", "NEO_FAKE", "HARDWARE"
+        self.neo_fake_connected = False
+        self.hardware_connected = False
         self.sample_idx = 0
         self.battery_pct = 92
         self.battery_mv = 3980
@@ -71,6 +74,36 @@ class SharedState:
         self.seizure_start_t = 0.0
         self.seizure_duration = 0.0
         self.seizure_risk = 7
+
+    @property
+    def source_meta(self):
+        if self.source_mode == "HARDWARE":
+            return {
+                "id": "HARDWARE",
+                "label": "LIVE PHYSICAL HARDWARE",
+                "badge": "HARDWARE",
+                "color": "#10b981", # Emerald green
+                "detail": "ESP32-S3 + ADS1292R Live Ear-EEG (250 SPS)",
+                "icon": "hardware"
+            }
+        elif self.source_mode == "NEO_FAKE":
+            return {
+                "id": "NEO_FAKE",
+                "label": "NEO-FAKE TEST BENCH",
+                "badge": "NEO-FAKE",
+                "color": "#f59e0b", # Amber
+                "detail": "Bridged to macOS neo-fake daemon (TCP 5001)",
+                "icon": "bridge"
+            }
+        else:
+            return {
+                "id": "INTERNAL_SIM",
+                "label": "INTERNAL STAGE SIMULATOR",
+                "badge": "INTERNAL SIM",
+                "color": "#a855f7", # Violet / Purple
+                "detail": "Autonomous 250 SPS Synthetic Rhythm (Pitch Mode)",
+                "icon": "simulator"
+            }
 
 state = SharedState()
 clients = set()
@@ -90,24 +123,29 @@ def broadcast_sse(event_type: str, data: dict):
             clients.discard(d)
 
 class NeoFakeBridge(threading.Thread):
-    """Monitors and connects to neo-fake on TCP 5001 / UDP 5000."""
+    """Monitors and connects to neo-fake on TCP 5001 / UDP 5000 or real hardware."""
     def __init__(self):
         super().__init__(daemon=True)
 
     def run(self):
         while True:
-            # Check if neo-fake is listening on localhost:5001
+            # Check if neo-fake (or hardware TCP bridge) is listening on localhost:5001
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(1.5)
                 sock.connect(("127.0.0.1", PORT_TCP_CTRL))
-                print("\n[+] SUCCESS: Connected to neo-fake on TCP port 5001!")
-                state.source_mode = "NEO_FAKE"
+                print("\n[+] SUCCESS: Connected to neo-fake / hardware on TCP port 5001!")
+                state.neo_fake_connected = True
+                if not state.manual_override:
+                    state.source_mode = "NEO_FAKE"
 
                 # Setup UDP socket to receive EEG packets
                 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                udp.bind(("127.0.0.1", PORT_UDP_DATA))
+                try:
+                    udp.bind(("127.0.0.1", PORT_UDP_DATA))
+                except Exception:
+                    pass
                 udp.settimeout(1.0)
 
                 # Send GET_INFO
@@ -117,7 +155,7 @@ class NeoFakeBridge(threading.Thread):
                 # Send START: udp_port = 5000 (0x1388), streams = 0x07 (EEG+IMU+STATUS)
                 start_params = struct.pack("<HB", PORT_UDP_DATA, 0x07)
                 sock.sendall(make_cmd_frame(CMD_START, start_params, seq=2))
-                print("[+] Sent START stream to neo-fake. Live hardware simulation streaming to phone!")
+                print("[+] Stream START sent! Data actively forwarding to mobile display.")
 
                 # Ingest UDP data
                 while True:
@@ -125,11 +163,11 @@ class NeoFakeBridge(threading.Thread):
                         data, _ = udp.recvfrom(1400)
                         if len(data) >= 24 and data[:2] == MAGIC:
                             pkt_type = data[3]
-                            if pkt_type == TYPE_EEG:
+                            if pkt_type == TYPE_EEG and state.source_mode in ("NEO_FAKE", "HARDWARE"):
                                 self.parse_eeg(data)
                             elif pkt_type == TYPE_EVENT:
                                 ev_id = data[22] if len(data) > 22 else 0
-                                print(f"[!] neo-fake EVENT received: {ev_id}")
+                                print(f"[!] Event packet received: {ev_id}")
                     except socket.timeout:
                         # Check TCP liveness
                         r, _, _ = select.select([sock], [], [], 0.0)
@@ -138,13 +176,16 @@ class NeoFakeBridge(threading.Thread):
                     except Exception:
                         break
 
-                print("[-] Disconnected from neo-fake. Falling back to Stage Simulator.")
-                state.source_mode = "SIMULATOR"
+                print("[-] Disconnected from external source. Falling back to Internal Stage Simulator.")
+                state.neo_fake_connected = False
+                if not state.manual_override:
+                    state.source_mode = "INTERNAL_SIM"
                 sock.close()
                 udp.close()
             except Exception:
-                # neo-fake not running yet
-                pass
+                state.neo_fake_connected = False
+                if not state.manual_override and state.source_mode == "NEO_FAKE":
+                    state.source_mode = "INTERNAL_SIM"
 
             time.sleep(2.0)
 
@@ -194,6 +235,7 @@ class NeoFakeBridge(threading.Thread):
             state.sample_idx += 1
             state.lead_off = loff
 
+        meta = state.source_meta
         broadcast_sse("eeg", {
             "samples": batch,
             "risk": state.seizure_risk,
@@ -203,11 +245,14 @@ class NeoFakeBridge(threading.Thread):
             "battery": state.battery_pct,
             "battery_mv": state.battery_mv,
             "lead_off": state.lead_off,
-            "source": state.source_mode
+            "source": state.source_mode,
+            "source_meta": meta,
+            "neo_fake_connected": state.neo_fake_connected,
+            "hardware_connected": state.hardware_connected
         })
 
 class StageSimulator(threading.Thread):
-    """Fallback generator when neo-fake is not running."""
+    """Fallback generator when neo-fake or hardware is not active."""
     def __init__(self):
         super().__init__(daemon=True)
         self.t = 0.0
@@ -215,7 +260,7 @@ class StageSimulator(threading.Thread):
 
     def run(self):
         while True:
-            if state.source_mode == "SIMULATOR":
+            if state.source_mode == "INTERNAL_SIM":
                 t0 = time.time()
                 batch = []
                 for _ in range(10):
@@ -249,6 +294,7 @@ class StageSimulator(threading.Thread):
                         "ch4": round(ch2 * 0.80, 1),
                     })
 
+                meta = state.source_meta
                 broadcast_sse("eeg", {
                     "samples": batch,
                     "risk": state.seizure_risk,
@@ -258,23 +304,32 @@ class StageSimulator(threading.Thread):
                     "battery": state.battery_pct,
                     "battery_mv": state.battery_mv,
                     "lead_off": state.lead_off,
-                    "source": state.source_mode
+                    "source": state.source_mode,
+                    "source_meta": meta,
+                    "neo_fake_connected": state.neo_fake_connected,
+                    "hardware_connected": state.hardware_connected
                 })
                 elapsed = time.time() - t0
                 time.sleep(max(0.002, 0.040 - elapsed))
             else:
-                time.sleep(0.1)
+                time.sleep(0.05)
 
 class RequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         web_dir = os.path.join(os.path.dirname(__file__), "web")
         super().__init__(*args, directory=web_dir, **kwargs)
 
+    def end_headers(self):
+        # Strict cache-busting headers so mobile browsers never serve stale pages
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def do_GET(self):
         if self.path == "/stream":
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "keep-alive")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
@@ -288,6 +343,17 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             finally:
                 with clients_lock:
                     clients.discard(self.wfile)
+        elif self.path == "/api/status":
+            meta = state.source_meta
+            self.send_json({
+                "status": "online",
+                "source": state.source_mode,
+                "source_meta": meta,
+                "neo_fake_connected": state.neo_fake_connected,
+                "hardware_connected": state.hardware_connected,
+                "seizure_active": state.seizure_active,
+                "battery": state.battery_pct
+            })
         else:
             super().do_GET()
 
@@ -301,6 +367,22 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             state.seizure_active = False
             state.seizure_risk = 7
             self.send_json({"status": "ok", "active": False})
+        elif self.path == "/api/set-source":
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+                req = json.loads(body)
+                requested = req.get("source", "AUTO")
+                if requested == "AUTO":
+                    state.manual_override = False
+                    state.source_mode = "NEO_FAKE" if state.neo_fake_connected else "INTERNAL_SIM"
+                elif requested in ("INTERNAL_SIM", "NEO_FAKE", "HARDWARE"):
+                    state.manual_override = True
+                    state.source_mode = requested
+                print(f"[!] Source mode changed to: {state.source_mode} (manual={state.manual_override})")
+                self.send_json({"status": "ok", "source": state.source_mode, "source_meta": state.source_meta})
+            except Exception as e:
+                self.send_json({"status": "error", "message": str(e)})
         else:
             self.send_error(404)
 
