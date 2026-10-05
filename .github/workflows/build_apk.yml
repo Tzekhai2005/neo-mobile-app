@@ -28,6 +28,10 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Generate Android Scaffolding
+        working-directory: ./flutter_app
+        run: flutter create --platforms=android --org com.aightech .
+
       - name: Install Dependencies
         working-directory: ./flutter_app
         run: flutter pub get
