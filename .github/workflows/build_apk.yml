@@ -28,6 +28,14 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # Copy the latest web UI into flutter assets before building
+      - name: Sync Web UI into Flutter Assets
+        run: |
+          mkdir -p flutter_app/assets
+          cp stage_companion/web/index.html flutter_app/assets/index.html
+          echo "✓ Synced web UI ($(wc -c < flutter_app/assets/index.html) bytes)"
+
+      # Generate Android Gradle scaffolding (safe to re-run)
       - name: Generate Android Scaffolding
         working-directory: ./flutter_app
         run: flutter create --platforms=android --org com.aightech .

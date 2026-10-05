@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'ui/monitor_screen.dart';
+import 'ui/webview_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,15 +21,15 @@ class NeoCompanionApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF070A12),
-        primaryColor: const Color(0xFF00F2FE),
+        scaffoldBackgroundColor: const Color(0xFF090c15),
+        primaryColor: const Color(0xFF00b4d8),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF00F2FE),
+          primary: Color(0xFF00b4d8),
           secondary: Color(0xFFA855F7),
-          surface: Color(0xFF0D121E),
+          surface: Color(0xFF0f1422),
         ),
       ),
-      home: const MonitorScreen(),
+      home: const WebViewShell(),
     );
   }
 }

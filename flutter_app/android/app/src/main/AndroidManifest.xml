@@ -1,6 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.aightech.neo_companion">
 
+    <!-- Network access for streaming from companion server -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
@@ -11,6 +13,9 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
+        <!-- usesCleartextTraffic = true allows http:// (not just https://)
+             Required so the APK can reach the companion server on local Wi-Fi -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
