@@ -151,19 +151,30 @@ class NeoClient {
       final loff = payload[offset];
       offset += 1;
 
-      final ch1Raw = ByteData.sublistView(payload, offset, offset + 4).getInt32(0, Endian.little);
-      offset += 4;
+      final rawChannels = <double>[];
+      for (int ch = 0; ch < nCh; ch++) {
+        if (offset + 4 > payload.length) break;
+        final rawValue = ByteData.sublistView(payload, offset, offset + 4).getInt32(0, Endian.little);
+        offset += 4;
+        final scale = ch == 0 ? scaleCh1 : (ch == 1 ? scaleCh2 : 0.04808);
+        rawChannels.add(rawValue * scale);
+      }
 
-      final ch2Raw = ByteData.sublistView(payload, offset, offset + 4).getInt32(0, Endian.little);
-      offset += 4;
+      final ch1Uv = rawChannels.isNotEmpty ? rawChannels[0] : 0.0;
+      final ch2Uv = rawChannels.length > 1 ? rawChannels[1] : 0.0;
+      final ch3Uv = rawChannels.length > 2 ? rawChannels[2] : (rawChannels.isNotEmpty ? ch1Uv * 0.75 : 0.0);
+      final ch4Uv = rawChannels.length > 3 ? rawChannels[3] : (rawChannels.length > 1 ? ch2Uv * 0.80 : 0.0);
 
       _eegStreamCtrl.add(EegSample(
         sampleIdx: sampleIdx + i,
         loff: loff,
-        ch1Uv: ch1Raw * scaleCh1,
-        ch2Uv: ch2Raw * scaleCh2,
-        ch3Uv: ch1Raw * scaleCh1 * 0.75,
-        ch4Uv: ch2Raw * scaleCh2 * 0.80,
+        ch1Uv: ch1Uv,
+        ch2Uv: ch2Uv,
+        ch3Uv: ch3Uv,
+        ch4Uv: ch4Uv,
+        channelsUv: rawChannels,
+        source: EegSource.rawUdp,
+        isDerived: false,
       ));
     }
   }

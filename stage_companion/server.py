@@ -202,13 +202,19 @@ class NeoFakeBridge(threading.Thread):
                 break
             loff = payload[offset]
             offset += 1
-            ch1_raw = struct.unpack("<i", payload[offset:offset+4])[0]
-            offset += 4
-            ch2_raw = struct.unpack("<i", payload[offset:offset+4])[0]
-            offset += 4
 
-            ch1 = ch1_raw * state.uv_per_count
-            ch2 = ch2_raw * state.uv_per_count
+            raw_channels = []
+            for _ in range(n_ch):
+                if offset + 4 > len(payload):
+                    break
+                raw = struct.unpack("<i", payload[offset:offset+4])[0]
+                offset += 4
+                raw_channels.append(raw * state.uv_per_count)
+
+            ch1 = raw_channels[0] if len(raw_channels) > 0 else 0.0
+            ch2 = raw_channels[1] if len(raw_channels) > 1 else 0.0
+            ch3 = raw_channels[2] if len(raw_channels) > 2 else ch1 * 0.75
+            ch4 = raw_channels[3] if len(raw_channels) > 3 else ch2 * 0.80
 
             # If user triggered seizure demo on phone, inject spike discharges
             if state.seizure_active:
@@ -220,6 +226,8 @@ class NeoFakeBridge(threading.Thread):
                     spike = 115.0 * (math.sin(ph) ** 9)
                     ch1 += spike
                     ch2 += spike * 0.9
+                    ch3 = ch1 * 0.75
+                    ch4 = ch2 * 0.80
                     state.seizure_risk = min(96, 88 + int(elapsed * 0.5))
                 else:
                     state.seizure_active = False
@@ -229,8 +237,10 @@ class NeoFakeBridge(threading.Thread):
                 "idx": state.sample_idx,
                 "ch1": round(ch1, 1),
                 "ch2": round(ch2, 1),
-                "ch3": round(ch1 * 0.75, 1),
-                "ch4": round(ch2 * 0.80, 1),
+                "ch3": round(ch3, 1),
+                "ch4": round(ch4, 1),
+                "channels": [round(v, 1) for v in raw_channels[:4]],
+                "channel_count": min(len(raw_channels), 4),
             })
             state.sample_idx += 1
             state.lead_off = loff

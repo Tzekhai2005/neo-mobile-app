@@ -50,12 +50,15 @@ class StageSimulator {
         }
 
         _eegCtrl.add(EegSample(
-          sampleIdx: _sampleIdx++,
-          loff: 0,
-          ch1Uv: ch1,
-          ch2Uv: ch2,
-          ch3Uv: ch1 * 0.75,
-          ch4Uv: ch2 * 0.80,
+         sampleIdx: _sampleIdx++,
+         loff: 0,
+         ch1Uv: ch1,
+         ch2Uv: ch2,
+         ch3Uv: ch1 * 0.75,
+         ch4Uv: ch2 * 0.80,
+         channelsUv: [ch1, ch2],
+         source: EegSource.simulated,
+         isDerived: false,
         ));
       }
     });

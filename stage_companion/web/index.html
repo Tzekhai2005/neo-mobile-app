@@ -875,6 +875,11 @@
     </div>
   </header>
 
+  <div class="raw-demo-toggle" style="margin: 12px 16px 0 16px; padding: 4px; background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius: 12px; display:flex; gap:4px;">
+    <button id="btn-raw-mode" onclick="setDisplayMode('raw')" style="flex:1; padding:10px 8px; border:none; border-radius:10px; font-weight:800; letter-spacing:0.08em; font-size:10px; background: rgba(0,180,216,0.14); color:#7dd3fc; cursor:pointer;">RAW UDP</button>
+    <button id="btn-demo-mode" onclick="setDisplayMode('demo')" style="flex:1; padding:10px 8px; border:none; border-radius:10px; font-weight:800; letter-spacing:0.08em; font-size:10px; background: transparent; color:var(--text-3); cursor:pointer;">DEMO</button>
+  </div>
+
   <!-- TAB 1: TELEMETRY (LIVE MONITOR) -->
   <section class="tab-page active" id="tab-telemetry">
 
@@ -1273,6 +1278,16 @@
     function openReportModal() { document.getElementById("report-modal").classList.add("open"); }
     function closeReportModal() { document.getElementById("report-modal").classList.remove("open"); }
 
+    let displayMode = 'raw';
+    function setDisplayMode(mode) {
+      displayMode = mode;
+      document.getElementById('btn-raw-mode').style.background = mode === 'raw' ? 'rgba(0,180,216,0.14)' : 'transparent';
+      document.getElementById('btn-raw-mode').style.color = mode === 'raw' ? '#7dd3fc' : 'var(--text-3)';
+      document.getElementById('btn-demo-mode').style.background = mode === 'demo' ? 'rgba(168,85,247,0.14)' : 'transparent';
+      document.getElementById('btn-demo-mode').style.color = mode === 'demo' ? '#d8b4fe' : 'var(--text-3)';
+      showToast(mode === 'raw' ? 'RAW UDP mode enabled' : 'DEMO mode enabled');
+    }
+
     // Canvas Engine (60 FPS Calibrated Oscilloscope)
     const canvas = document.getElementById("eeg-canvas");
     const ctx = canvas.getContext("2d");
@@ -1309,10 +1324,19 @@
         const samples = data.samples;
 
         for (let i = 0; i < samples.length; i++) {
-          bufCh1[writeIdx] = samples[i].ch1;
-          bufCh2[writeIdx] = samples[i].ch2;
-          bufCh3[writeIdx] = samples[i].ch3 || (samples[i].ch1 * 0.75);
-          bufCh4[writeIdx] = samples[i].ch4 || (samples[i].ch2 * 0.80);
+          const sample = samples[i];
+          const channelList = Array.isArray(sample.channels) && sample.channels.length > 0 ? sample.channels : [sample.ch1, sample.ch2, sample.ch3 || sample.ch1 * 0.75, sample.ch4 || sample.ch2 * 0.80];
+          if (displayMode === 'raw' && channelList.length >= 2) {
+            bufCh1[writeIdx] = channelList[0];
+            bufCh2[writeIdx] = channelList[1];
+            bufCh3[writeIdx] = channelList[2] || channelList[0] * 0.75;
+            bufCh4[writeIdx] = channelList[3] || channelList[1] * 0.80;
+          } else {
+            bufCh1[writeIdx] = sample.ch1;
+            bufCh2[writeIdx] = sample.ch2;
+            bufCh3[writeIdx] = sample.ch3 || (sample.ch1 * 0.75);
+            bufCh4[writeIdx] = sample.ch4 || (sample.ch2 * 0.80);
+          }
           writeIdx = (writeIdx + 1) % MAX_SAMPLES;
         }
 

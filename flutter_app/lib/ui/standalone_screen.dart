@@ -37,6 +37,7 @@ class StandaloneScreen extends StatefulWidget {
 }
 
 enum _SourceMode { sim, connecting, hardware }
+enum _DisplayMode { raw, demo }
 
 class _StandaloneScreenState extends State<StandaloneScreen>
     with SingleTickerProviderStateMixin {
@@ -48,14 +49,19 @@ class _StandaloneScreenState extends State<StandaloneScreen>
 
   final EegCircularBuffer _b1 = EegCircularBuffer(capacity: 1250);
   final EegCircularBuffer _b2 = EegCircularBuffer(capacity: 1250);
+  final EegCircularBuffer _b3 = EegCircularBuffer(capacity: 1250);
+  final EegCircularBuffer _b4 = EegCircularBuffer(capacity: 1250);
   final Float64List _r1 = Float64List(1250);
   final Float64List _r2 = Float64List(1250);
+  final Float64List _r3 = Float64List(1250);
+  final Float64List _r4 = Float64List(1250);
 
   StreamSubscription<EegSample>? _eegSub;
   StreamSubscription<NeoDeviceInfo>? _discoverySub;
 
   // ── State ──────────────────────────────────────────────────────────────────
   _SourceMode _source = _SourceMode.connecting;
+  _DisplayMode _displayMode = _DisplayMode.raw;
   NeoDeviceInfo? _device;
   String _statusMsg = 'Scanning for Neo device…';
   bool _seizureActive = false;
@@ -66,6 +72,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   double _uvScale = 50.0;
   bool _isDual = false;
   int _currentTab = 0;
+  int _lastChannelCount = 2;
   Timer? _durationTimer;
   Timer? _discoveryTimeoutTimer;
 
@@ -140,8 +147,24 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   }
 
   void _onSample(EegSample s) {
-    _b1.write(s.ch1Uv);
-    _b2.write(s.ch2Uv);
+    final channels = _displayMode == _DisplayMode.raw && s.channelsUv.isNotEmpty
+        ? s.channelsUv
+        : [s.ch1Uv, s.ch2Uv, s.ch3Uv, s.ch4Uv];
+    _lastChannelCount = channels.length;
+
+    if (channels.isNotEmpty) {
+      _b1.write(channels[0]);
+    }
+    if (channels.length > 1) {
+      _b2.write(channels[1]);
+    }
+    if (channels.length > 2) {
+      _b3.write(channels[2]);
+    }
+    if (channels.length > 3) {
+      _b4.write(channels[3]);
+    }
+
     final r = _det.processSample(s.ch1Uv);
     _seizureRisk = r.riskPct;
     final nowSeizure = _sim.isSeizureActive || r.isSeizureOnset;
@@ -234,6 +257,8 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   Widget build(BuildContext context) {
     _b1.readChronological(_r1);
     _b2.readChronological(_r2);
+    _b3.readChronological(_r3);
+    _b4.readChronological(_r4);
 
     return Scaffold(
       backgroundColor: kBg,
@@ -324,6 +349,8 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     return SingleChildScrollView(
       padding: const EdgeInsets.all(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _buildDisplayModeToggle(),
+        const SizedBox(height: 10),
         // Source strip
         _buildSourceStrip(),
         const SizedBox(height: 10),
@@ -335,6 +362,48 @@ class _StandaloneScreenState extends State<StandaloneScreen>
         const SizedBox(height: 10),
         // Vitals grid
         _buildVitalsGrid(),
+      ]),
+    );
+  }
+
+  Widget _buildDisplayModeToggle() {
+    final rawActive = _displayMode == _DisplayMode.raw;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: kSurface1,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorder),
+      ),
+      child: Row(children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _displayMode = _DisplayMode.raw),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: rawActive ? kCh1.withOpacity(0.14) : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('RAW UDP', textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: rawActive ? kCh1 : kText3)),
+            ),
+          ),
+        ),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _displayMode = _DisplayMode.demo),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: !rawActive ? kPurple.withOpacity(0.14) : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('DEMO', textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: !rawActive ? kPurple : kText3)),
+            ),
+          ),
+        ),
       ]),
     );
   }
@@ -421,6 +490,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   }
 
   Widget _buildOscilloscope() {
+    final rawChannels = _displayMode == _DisplayMode.raw ? _lastChannelCount : 2;
+    final showDual = _displayMode == _DisplayMode.raw ? rawChannels > 2 : _isDual;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF050811),
@@ -433,14 +505,20 @@ class _StandaloneScreenState extends State<StandaloneScreen>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Row(children: [
-              _ChipDot(color: kCh1, label: 'Ch1 Ant'),
+              _ChipDot(color: kCh1, label: _displayMode == _DisplayMode.raw ? 'Raw Ch1' : 'Ch1 Ant'),
               const SizedBox(width: 10),
-              _ChipDot(color: kCh2, label: 'Ch2 Post'),
+              _ChipDot(color: kCh2, label: _displayMode == _DisplayMode.raw ? 'Raw Ch2' : 'Ch2 Post'),
+              if (showDual) ...[
+                const SizedBox(width: 10),
+                _ChipDot(color: const Color(0xFFF59E0B), label: 'Ch3'),
+                const SizedBox(width: 10),
+                _ChipDot(color: const Color(0xFF10B981), label: 'Ch4'),
+              ],
             ]),
             Row(children: [
               _CtrlBtn(label: '${_uvScale.toInt()} µV', onTap: _cycleScale, active: true),
               const SizedBox(width: 6),
-              _CtrlBtn(label: '4-CH', onTap: () => setState(() => _isDual = !_isDual), active: _isDual),
+              _CtrlBtn(label: showDual ? '4-CH' : '2-CH', onTap: () => setState(() => _isDual = !_isDual), active: showDual),
             ]),
           ]),
         ),
@@ -450,7 +528,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
           child: EegCanvasWidget(
             ch1Data: _r1,
             ch2Data: _r2,
-            isDual: _isDual,
+            ch3Data: showDual ? _r3 : null,
+            ch4Data: showDual ? _r4 : null,
+            isDual: showDual,
             uvScale: _uvScale,
             isSeizure: _seizureActive,
           ),

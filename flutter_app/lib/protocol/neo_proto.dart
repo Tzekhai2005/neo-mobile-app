@@ -95,6 +95,12 @@ class NeoProto {
   }
 }
 
+enum EegSource {
+  rawUdp,
+  simulated,
+  derived,
+}
+
 /// Parsed EEG Sample
 class EegSample {
   final int sampleIdx;
@@ -103,6 +109,9 @@ class EegSample {
   final double ch2Uv;
   final double ch3Uv;
   final double ch4Uv;
+  final List<double> channelsUv;
+  final EegSource source;
+  final bool isDerived;
 
   EegSample({
     required this.sampleIdx,
@@ -111,5 +120,8 @@ class EegSample {
     required this.ch2Uv,
     this.ch3Uv = 0.0,
     this.ch4Uv = 0.0,
+    this.channelsUv = const [],
+    this.source = EegSource.rawUdp,
+    this.isDerived = false,
   });
 }
