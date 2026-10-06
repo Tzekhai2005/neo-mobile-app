@@ -36,6 +36,10 @@ jobs:
         working-directory: ./flutter_app
         run: flutter pub get
 
+      - name: Run protocol tests
+        working-directory: ./flutter_app
+        run: flutter test test/protocol_test.dart test/messages_test.dart
+
       - name: Build Android APK
         working-directory: ./flutter_app
         run: flutter build apk --release --no-tree-shake-icons

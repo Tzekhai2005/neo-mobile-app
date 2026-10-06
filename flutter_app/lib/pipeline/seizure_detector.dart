@@ -55,8 +55,4 @@ class SeizureDetector {
       currentUv: uvSample,
     );
   }
-
-  void resetWindow() {
-    _spikesInWindow = 0;
-  }
 }

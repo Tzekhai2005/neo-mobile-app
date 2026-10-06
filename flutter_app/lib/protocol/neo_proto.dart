@@ -54,6 +54,26 @@ class NeoProto {
     return crc;
   }
 
+  /// Validates one packet (no stream length prefix): size, magic, major
+  /// version and CRC (README §2). Returns null for anything invalid; a bad
+  /// packet is dropped, never partially parsed.
+  static NeoPacket? parsePacket(Uint8List buf) {
+    if (buf.length < minPktSize || buf.length > maxPktSize) return null;
+    if (buf[0] != magic0 || buf[1] != magic1) return null;
+    if (buf[2] != version) return null;
+    final bd = ByteData.sublistView(buf);
+    final want = bd.getUint16(buf.length - 2, Endian.little);
+    if (crc16(buf, 0, buf.length - 2) != want) return null;
+    return NeoPacket(
+      type: buf[3],
+      module: buf[4],
+      seq: bd.getUint32(6, Endian.little),
+      sampleIdx: bd.getUint32(10, Endian.little),
+      tUs: bd.getUint64(14, Endian.little),
+      payload: Uint8List.sublistView(buf, hdrSize, buf.length - 2),
+    );
+  }
+
   /// Builds a command frame [len u16 LE][hdr 22 bytes][payload][crc16 LE]
   static Uint8List buildCommandFrame({
     required int cmdId,
@@ -97,8 +117,6 @@ class NeoProto {
 
 enum EegSource {
   rawUdp,
-  simulated,
-  derived,
 }
 
 /// Parsed EEG Sample
@@ -111,7 +129,6 @@ class EegSample {
   final double ch4Uv;
   final List<double> channelsUv;
   final EegSource source;
-  final bool isDerived;
 
   EegSample({
     required this.sampleIdx,
@@ -122,6 +139,63 @@ class EegSample {
     this.ch4Uv = 0.0,
     this.channelsUv = const [],
     this.source = EegSource.rawUdp,
-    this.isDerived = false,
   });
+}
+
+/// A validated packet: header fields plus the payload (CRC stripped).
+class NeoPacket {
+  final int type;
+  final int module;
+  final int seq;
+  final int sampleIdx;
+  final int tUs;
+  final Uint8List payload;
+
+  NeoPacket({
+    required this.type,
+    required this.module,
+    required this.seq,
+    required this.sampleIdx,
+    required this.tUs,
+    required this.payload,
+  });
+}
+
+/// Byte-stream deframer for `[len u16 LE][packet]` with one-byte resync on any
+/// failure (README §7.1). TCP may split or merge frames; feed it every chunk.
+class NeoDeframer {
+  Uint8List _buf = Uint8List(0);
+  int dropped = 0;
+
+  List<NeoPacket> feed(Uint8List data) {
+    final total = _buf.length + data.length;
+    final merged = Uint8List(total);
+    merged.setRange(0, _buf.length, _buf);
+    merged.setRange(_buf.length, total, data);
+
+    final out = <NeoPacket>[];
+    var pos = 0;
+    while (total - pos >= 2) {
+      final avail = total - pos;
+      final n = merged[pos] | (merged[pos + 1] << 8);
+      var bad = n < NeoProto.minPktSize ||
+          n > NeoProto.maxPktSize ||
+          (avail > 2 && merged[pos + 2] != NeoProto.magic0) ||
+          (avail > 3 && merged[pos + 3] != NeoProto.magic1);
+      if (!bad) {
+        if (avail < 2 + n) break; // wait for the rest of the frame
+        final pkt = NeoProto.parsePacket(Uint8List.sublistView(merged, pos + 2, pos + 2 + n));
+        if (pkt != null) {
+          out.add(pkt);
+          pos += 2 + n;
+          continue;
+        }
+        bad = true;
+      }
+      pos++;
+      dropped++;
+    }
+    _buf = Uint8List.fromList(merged.sublist(pos));
+    return out;
+  }
 }

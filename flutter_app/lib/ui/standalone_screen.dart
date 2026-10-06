@@ -56,6 +56,8 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   StreamSubscription<EegSample>? _eegSub;
   StreamSubscription<NeoDeviceInfo>? _discoverySub;
   StreamSubscription<bool>? _connectionSub;
+  StreamSubscription<bool>? _stalledSub;
+  bool _noData = false; // connected, but no packets for ~1 s
 
   // ── State ──────────────────────────────────────────────────────────────────
   _SourceMode _source = _SourceMode.disconnected;
@@ -72,8 +74,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   int _lastChannelCount = 2;
   Timer? _durationTimer;
   Timer? _discoveryTimeoutTimer;
-  Timer? _connectionWatchdog;
-  DateTime? _lastEegAt;
 
   final List<_DiaryEntry> _diary = [];
   int _ictalCount = 0;
@@ -95,24 +95,18 @@ class _StandaloneScreenState extends State<StandaloneScreen>
       _statusMsg = 'Scanning for Neo device on Wi-Fi…';
     });
 
-    _connectionWatchdog?.cancel();
-    _connectionWatchdog = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      final stale = _lastEegAt != null && DateTime.now().difference(_lastEegAt!).inMilliseconds >= 900;
-      if (_source == _SourceMode.connected && stale) {
-        setState(() {
-          _source = _SourceMode.disconnected;
-          _statusMsg = 'Connection lost — reconnecting…';
-        });
-      }
-    });
-
     _discoverySub?.cancel();
     _connectionSub?.cancel();
+    _stalledSub?.cancel();
+    _stalledSub = _client.onDataStalledChanged.listen((stalled) {
+      if (mounted) setState(() => _noData = stalled);
+    });
     _client.startDiscovery();
     _discoverySub = _client.onDeviceDiscovered.listen(_onDeviceFound);
     _connectionSub = _client.onConnectionStateChanged.listen((connected) {
       if (!connected && mounted) {
         setState(() {
+          _noData = false;
           _source = _SourceMode.disconnected;
           _statusMsg = 'Disconnected — reconnecting…';
         });
@@ -144,14 +138,18 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   }
 
   Future<void> _connectToDevice(NeoDeviceInfo dev) async {
+    // Subscribe before START so the first packets are not lost on the
+    // broadcast stream.
     _eegSub?.cancel();
-    _lastEegAt = DateTime.now();
+    _eegSub = _client.eegStream.listen(_onSample);
 
     final ok = await _client.connectAndStart(dev);
+    if (!mounted) return;
     if (!ok) {
+      _eegSub?.cancel();
       setState(() {
         _source = _SourceMode.disconnected;
-        _statusMsg = 'Connection failed — raw EEG unavailable';
+        _statusMsg = 'Connection failed — retrying…';
       });
       return;
     }
@@ -160,11 +158,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
       _batteryPct = dev.batteryPct;
       _statusMsg = 'Streaming from ${dev.name}';
     });
-    _eegSub = _client.eegStream.listen(_onSample);
   }
 
   void _onSample(EegSample s) {
-    _lastEegAt = DateTime.now();
     if (_source == _SourceMode.disconnected) {
       setState(() {
         _source = _SourceMode.connected;
@@ -244,10 +240,10 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   void dispose() {
     _durationTimer?.cancel();
     _discoveryTimeoutTimer?.cancel();
-    _connectionWatchdog?.cancel();
     _eegSub?.cancel();
     _discoverySub?.cancel();
     _connectionSub?.cancel();
+    _stalledSub?.cancel();
     _client.dispose();
     _tabController.dispose();
     super.dispose();
@@ -320,8 +316,8 @@ class _StandaloneScreenState extends State<StandaloneScreen>
 
   Widget _buildSourcePill() {
     final connected = _source == _SourceMode.connected;
-    final col = connected ? kGreen : kText3;
-    final label = connected ? 'CONNECTED' : 'DISCONNECTED';
+    final col = connected ? (_noData ? kAmber : kGreen) : kText3;
+    final label = connected ? (_noData ? 'NO DATA' : 'CONNECTED') : 'DISCONNECTED';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -362,7 +358,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
 
   Widget _buildSourceStrip() {
     final connected = _source == _SourceMode.connected;
-    final col = connected ? kGreen : kText3;
+    final col = connected ? (_noData ? kAmber : kGreen) : kText3;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -380,7 +376,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
             border: Border.all(color: col.withOpacity(0.4)),
           ),
           child: Text(
-            connected ? 'CONNECTED' : 'DISCONNECTED',
+            connected ? (_noData ? 'NO DATA' : 'CONNECTED') : 'DISCONNECTED',
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: col, fontFamily: 'monospace'),
           ),
         ),
