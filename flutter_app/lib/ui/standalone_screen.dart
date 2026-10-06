@@ -492,6 +492,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   Widget _buildOscilloscope() {
     final rawChannels = _displayMode == _DisplayMode.raw ? _lastChannelCount : 2;
     final showDual = _displayMode == _DisplayMode.raw ? rawChannels > 2 : _isDual;
+    final displayChannelLabel = _displayMode == _DisplayMode.raw
+        ? '${rawChannels}-CH'
+        : (showDual ? '4-CH' : '2-CH');
 
     return Container(
       decoration: BoxDecoration(
@@ -518,7 +521,18 @@ class _StandaloneScreenState extends State<StandaloneScreen>
             Row(children: [
               _CtrlBtn(label: '${_uvScale.toInt()} µV', onTap: _cycleScale, active: true),
               const SizedBox(width: 6),
-              _CtrlBtn(label: showDual ? '4-CH' : '2-CH', onTap: () => setState(() => _isDual = !_isDual), active: showDual),
+              if (_displayMode == _DisplayMode.demo)
+                _CtrlBtn(label: displayChannelLabel, onTap: () => setState(() => _isDual = !_isDual), active: showDual)
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: kSurface2,
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: kBorder),
+                  ),
+                  child: Text(displayChannelLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kText2)),
+                ),
             ]),
           ]),
         ),
