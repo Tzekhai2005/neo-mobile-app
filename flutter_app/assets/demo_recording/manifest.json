@@ -1,0 +1,2255 @@
+{
+ "formatVersion": 1,
+ "synthetic": true,
+ "generator": "tools/make_demo_dataset.py",
+ "seed": 7,
+ "startUtc": "2026-10-05T00:00:00Z",
+ "utcOffsetMinutes": 480,
+ "durationSec": 259200,
+ "eeg": {
+  "rateHz": 250,
+  "channels": 2,
+  "uvPerCount": 0.1
+ },
+ "imu": {
+  "rateHz": 100,
+  "gPerCount": 0.00048828125,
+  "dpsPerCount": 0.06103515625
+ },
+ "events": [
+  {
+   "id": "e0001",
+   "source": "auto",
+   "startSample": 20114,
+   "durationSamples": 663,
+   "confidence": 0.329,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.904,
+   "truth": "head-shake",
+   "window": {
+    "offset": 0,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0002",
+   "source": "auto",
+   "startSample": 74252,
+   "durationSamples": 500,
+   "confidence": 0.291,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.972,
+   "truth": "blink",
+   "window": {
+    "offset": 88000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0003",
+   "source": "auto",
+   "startSample": 270214,
+   "durationSamples": 763,
+   "confidence": 0.39,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.97,
+   "truth": "head-shake",
+   "window": {
+    "offset": 176000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0004",
+   "source": "auto",
+   "startSample": 1466796,
+   "durationSamples": 2420,
+   "confidence": 0.839,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.963,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 264000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0005",
+   "source": "auto",
+   "startSample": 1814973,
+   "durationSamples": 500,
+   "confidence": 0.332,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.943,
+   "truth": "blink",
+   "window": {
+    "offset": 352000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0006",
+   "source": "auto",
+   "startSample": 3528697,
+   "durationSamples": 500,
+   "confidence": 0.343,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.902,
+   "truth": "blink",
+   "window": {
+    "offset": 440000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0007",
+   "source": "auto",
+   "startSample": 3866411,
+   "durationSamples": 3701,
+   "confidence": 0.888,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.921,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 528000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0008",
+   "source": "auto",
+   "startSample": 3935075,
+   "durationSamples": 795,
+   "confidence": 0.521,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.931,
+   "truth": "clench",
+   "window": {
+    "offset": 616000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0009",
+   "source": "auto",
+   "startSample": 5225661,
+   "durationSamples": 3374,
+   "confidence": 0.961,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.909,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 704000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0010",
+   "source": "auto",
+   "startSample": 5497586,
+   "durationSamples": 944,
+   "confidence": 0.55,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.957,
+   "truth": "clench",
+   "window": {
+    "offset": 792000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0011",
+   "source": "auto",
+   "startSample": 5569253,
+   "durationSamples": 753,
+   "confidence": 0.299,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.948,
+   "truth": "head-shake",
+   "window": {
+    "offset": 880000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0012",
+   "source": "auto",
+   "startSample": 5819898,
+   "durationSamples": 401,
+   "confidence": 0.307,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.94,
+   "truth": "clench",
+   "window": {
+    "offset": 968000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0013",
+   "source": "auto",
+   "startSample": 6712909,
+   "durationSamples": 414,
+   "confidence": 0.322,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.92,
+   "truth": "clench",
+   "window": {
+    "offset": 1056000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0014",
+   "source": "auto",
+   "startSample": 6793408,
+   "durationSamples": 400,
+   "confidence": 0.549,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.911,
+   "truth": "clench",
+   "window": {
+    "offset": 1144000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0015",
+   "source": "auto",
+   "startSample": 6879564,
+   "durationSamples": 718,
+   "confidence": 0.303,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.999,
+   "truth": "head-shake",
+   "window": {
+    "offset": 1232000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0016",
+   "source": "auto",
+   "startSample": 7096087,
+   "durationSamples": 644,
+   "confidence": 0.281,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.972,
+   "truth": "head-shake",
+   "window": {
+    "offset": 1320000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0017",
+   "source": "auto",
+   "startSample": 7884582,
+   "durationSamples": 500,
+   "confidence": 0.233,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.992,
+   "truth": "blink",
+   "window": {
+    "offset": 1408000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0018",
+   "source": "auto",
+   "startSample": 8384630,
+   "durationSamples": 2977,
+   "confidence": 0.959,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.94,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 1496000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0019",
+   "source": "patientButton",
+   "startSample": 8386597,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.954,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 1584000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0020",
+   "source": "auto",
+   "startSample": 8627776,
+   "durationSamples": 441,
+   "confidence": 0.567,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.918,
+   "truth": "clench",
+   "window": {
+    "offset": 1672000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0021",
+   "source": "auto",
+   "startSample": 9030392,
+   "durationSamples": 690,
+   "confidence": 0.567,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.957,
+   "truth": "clench",
+   "window": {
+    "offset": 1760000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0022",
+   "source": "auto",
+   "startSample": 9475268,
+   "durationSamples": 500,
+   "confidence": 0.325,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.922,
+   "truth": "blink",
+   "window": {
+    "offset": 1848000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0023",
+   "source": "auto",
+   "startSample": 10465982,
+   "durationSamples": 818,
+   "confidence": 0.322,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.932,
+   "truth": "head-shake",
+   "window": {
+    "offset": 1936000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0024",
+   "source": "auto",
+   "startSample": 10827236,
+   "durationSamples": 708,
+   "confidence": 0.549,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.905,
+   "truth": "clench",
+   "window": {
+    "offset": 2024000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0025",
+   "source": "auto",
+   "startSample": 11170913,
+   "durationSamples": 828,
+   "confidence": 0.478,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.961,
+   "truth": "clench",
+   "window": {
+    "offset": 2112000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0026",
+   "source": "auto",
+   "startSample": 12279413,
+   "durationSamples": 959,
+   "confidence": 0.334,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.954,
+   "truth": "clench",
+   "window": {
+    "offset": 2200000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0027",
+   "source": "auto",
+   "startSample": 12686808,
+   "durationSamples": 826,
+   "confidence": 0.306,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.942,
+   "truth": "clench",
+   "window": {
+    "offset": 2288000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0028",
+   "source": "auto",
+   "startSample": 12749101,
+   "durationSamples": 500,
+   "confidence": 0.378,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.998,
+   "truth": "blink",
+   "window": {
+    "offset": 2376000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0029",
+   "source": "auto",
+   "startSample": 13025995,
+   "durationSamples": 627,
+   "confidence": 0.299,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.993,
+   "truth": "head-shake",
+   "window": {
+    "offset": 2464000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0030",
+   "source": "auto",
+   "startSample": 13530245,
+   "durationSamples": 500,
+   "confidence": 0.192,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.985,
+   "truth": "blink",
+   "window": {
+    "offset": 2552000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0031",
+   "source": "auto",
+   "startSample": 14694885,
+   "durationSamples": 597,
+   "confidence": 0.309,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.907,
+   "truth": "clench",
+   "window": {
+    "offset": 2640000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0032",
+   "source": "auto",
+   "startSample": 15122262,
+   "durationSamples": 500,
+   "confidence": 0.238,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.956,
+   "truth": "blink",
+   "window": {
+    "offset": 2728000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0033",
+   "source": "auto",
+   "startSample": 15819403,
+   "durationSamples": 3313,
+   "confidence": 0.96,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.91,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 2816000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0034",
+   "source": "auto",
+   "startSample": 15842077,
+   "durationSamples": 568,
+   "confidence": 0.414,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.953,
+   "truth": "clench",
+   "window": {
+    "offset": 2904000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0035",
+   "source": "auto",
+   "startSample": 16230949,
+   "durationSamples": 900,
+   "confidence": 0.385,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.98,
+   "truth": "head-shake",
+   "window": {
+    "offset": 2992000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0036",
+   "source": "auto",
+   "startSample": 16320748,
+   "durationSamples": 500,
+   "confidence": 0.309,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.905,
+   "truth": "blink",
+   "window": {
+    "offset": 3080000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0037",
+   "source": "auto",
+   "startSample": 16564288,
+   "durationSamples": 657,
+   "confidence": 0.472,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.954,
+   "truth": "head-shake",
+   "window": {
+    "offset": 3168000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0038",
+   "source": "auto",
+   "startSample": 16808597,
+   "durationSamples": 674,
+   "confidence": 0.493,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.911,
+   "truth": "head-shake",
+   "window": {
+    "offset": 3256000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0039",
+   "source": "auto",
+   "startSample": 17059860,
+   "durationSamples": 990,
+   "confidence": 0.384,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.919,
+   "truth": "head-shake",
+   "window": {
+    "offset": 3344000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0040",
+   "source": "auto",
+   "startSample": 17358963,
+   "durationSamples": 500,
+   "confidence": 0.232,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.964,
+   "truth": "blink",
+   "window": {
+    "offset": 3432000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0041",
+   "source": "patientButton",
+   "startSample": 17410631,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.965,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 3520000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0042",
+   "source": "auto",
+   "startSample": 17526527,
+   "durationSamples": 500,
+   "confidence": 0.381,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.939,
+   "truth": "blink",
+   "window": {
+    "offset": 3608000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0043",
+   "source": "auto",
+   "startSample": 18043205,
+   "durationSamples": 2897,
+   "confidence": 0.961,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.988,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 3696000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0044",
+   "source": "auto",
+   "startSample": 18991527,
+   "durationSamples": 500,
+   "confidence": 0.278,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.931,
+   "truth": "blink",
+   "window": {
+    "offset": 3784000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0045",
+   "source": "auto",
+   "startSample": 19716244,
+   "durationSamples": 500,
+   "confidence": 0.296,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.951,
+   "truth": "blink",
+   "window": {
+    "offset": 3872000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0046",
+   "source": "auto",
+   "startSample": 19990766,
+   "durationSamples": 2452,
+   "confidence": 0.913,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.988,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 3960000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0047",
+   "source": "auto",
+   "startSample": 20218208,
+   "durationSamples": 850,
+   "confidence": 0.393,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.923,
+   "truth": "clench",
+   "window": {
+    "offset": 4048000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0048",
+   "source": "auto",
+   "startSample": 20357810,
+   "durationSamples": 3133,
+   "confidence": 0.868,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.998,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 4136000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0049",
+   "source": "auto",
+   "startSample": 21124569,
+   "durationSamples": 500,
+   "confidence": 0.353,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.939,
+   "truth": "blink",
+   "window": {
+    "offset": 4224000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0050",
+   "source": "auto",
+   "startSample": 21363171,
+   "durationSamples": 500,
+   "confidence": 0.397,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.952,
+   "truth": "blink",
+   "window": {
+    "offset": 4312000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0051",
+   "source": "auto",
+   "startSample": 21547958,
+   "durationSamples": 989,
+   "confidence": 0.339,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.988,
+   "truth": "head-shake",
+   "window": {
+    "offset": 4400000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0052",
+   "source": "auto",
+   "startSample": 22707027,
+   "durationSamples": 674,
+   "confidence": 0.224,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.905,
+   "truth": "head-shake",
+   "window": {
+    "offset": 4488000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0053",
+   "source": "auto",
+   "startSample": 22925782,
+   "durationSamples": 740,
+   "confidence": 0.589,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.931,
+   "truth": "clench",
+   "window": {
+    "offset": 4576000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0054",
+   "source": "auto",
+   "startSample": 25240798,
+   "durationSamples": 990,
+   "confidence": 0.348,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.965,
+   "truth": "clench",
+   "window": {
+    "offset": 4664000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0055",
+   "source": "auto",
+   "startSample": 25807067,
+   "durationSamples": 500,
+   "confidence": 0.363,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.902,
+   "truth": "blink",
+   "window": {
+    "offset": 4752000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0056",
+   "source": "auto",
+   "startSample": 27256454,
+   "durationSamples": 500,
+   "confidence": 0.297,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.998,
+   "truth": "blink",
+   "window": {
+    "offset": 4840000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0057",
+   "source": "auto",
+   "startSample": 29403852,
+   "durationSamples": 721,
+   "confidence": 0.597,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.983,
+   "truth": "clench",
+   "window": {
+    "offset": 4928000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0058",
+   "source": "patientButton",
+   "startSample": 29740572,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.932,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 5016000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0059",
+   "source": "auto",
+   "startSample": 31038871,
+   "durationSamples": 854,
+   "confidence": 0.497,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.915,
+   "truth": "clench",
+   "window": {
+    "offset": 5104000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0060",
+   "source": "auto",
+   "startSample": 31705155,
+   "durationSamples": 924,
+   "confidence": 0.444,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.969,
+   "truth": "head-shake",
+   "window": {
+    "offset": 5192000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0061",
+   "source": "auto",
+   "startSample": 32074914,
+   "durationSamples": 500,
+   "confidence": 0.291,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.949,
+   "truth": "blink",
+   "window": {
+    "offset": 5280000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0062",
+   "source": "auto",
+   "startSample": 32404490,
+   "durationSamples": 500,
+   "confidence": 0.184,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.942,
+   "truth": "blink",
+   "window": {
+    "offset": 5368000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0063",
+   "source": "auto",
+   "startSample": 32591237,
+   "durationSamples": 787,
+   "confidence": 0.321,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.983,
+   "truth": "clench",
+   "window": {
+    "offset": 5456000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0064",
+   "source": "auto",
+   "startSample": 33186661,
+   "durationSamples": 795,
+   "confidence": 0.38,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.95,
+   "truth": "head-shake",
+   "window": {
+    "offset": 5544000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0065",
+   "source": "auto",
+   "startSample": 33921683,
+   "durationSamples": 790,
+   "confidence": 0.275,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.94,
+   "truth": "head-shake",
+   "window": {
+    "offset": 5632000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0066",
+   "source": "patientButton",
+   "startSample": 33957907,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.983,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 5720000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0067",
+   "source": "auto",
+   "startSample": 34229476,
+   "durationSamples": 500,
+   "confidence": 0.186,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.965,
+   "truth": "blink",
+   "window": {
+    "offset": 5808000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0068",
+   "source": "auto",
+   "startSample": 35900530,
+   "durationSamples": 500,
+   "confidence": 0.253,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.929,
+   "truth": "blink",
+   "window": {
+    "offset": 5896000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0069",
+   "source": "auto",
+   "startSample": 36190584,
+   "durationSamples": 500,
+   "confidence": 0.33,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.951,
+   "truth": "blink",
+   "window": {
+    "offset": 5984000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0070",
+   "source": "auto",
+   "startSample": 36254501,
+   "durationSamples": 900,
+   "confidence": 0.344,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.951,
+   "truth": "clench",
+   "window": {
+    "offset": 6072000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0071",
+   "source": "auto",
+   "startSample": 36972419,
+   "durationSamples": 431,
+   "confidence": 0.318,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.912,
+   "truth": "clench",
+   "window": {
+    "offset": 6160000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0072",
+   "source": "auto",
+   "startSample": 37394057,
+   "durationSamples": 4441,
+   "confidence": 0.827,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.964,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 6248000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0073",
+   "source": "auto",
+   "startSample": 37574961,
+   "durationSamples": 4100,
+   "confidence": 0.971,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.933,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 6336000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0074",
+   "source": "patientButton",
+   "startSample": 37677141,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.975,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 6424000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0075",
+   "source": "auto",
+   "startSample": 39788995,
+   "durationSamples": 533,
+   "confidence": 0.411,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.974,
+   "truth": "clench",
+   "window": {
+    "offset": 6512000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0076",
+   "source": "auto",
+   "startSample": 40427675,
+   "durationSamples": 649,
+   "confidence": 0.516,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.951,
+   "truth": "head-shake",
+   "window": {
+    "offset": 6600000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0077",
+   "source": "auto",
+   "startSample": 41108750,
+   "durationSamples": 656,
+   "confidence": 0.477,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.951,
+   "truth": "head-shake",
+   "window": {
+    "offset": 6688000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0078",
+   "source": "auto",
+   "startSample": 41398606,
+   "durationSamples": 3369,
+   "confidence": 0.83,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.986,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 6776000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0079",
+   "source": "auto",
+   "startSample": 41648006,
+   "durationSamples": 500,
+   "confidence": 0.236,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.979,
+   "truth": "blink",
+   "window": {
+    "offset": 6864000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0080",
+   "source": "auto",
+   "startSample": 41930861,
+   "durationSamples": 4055,
+   "confidence": 0.866,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.927,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 6952000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0081",
+   "source": "auto",
+   "startSample": 42781369,
+   "durationSamples": 927,
+   "confidence": 0.61,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.981,
+   "truth": "clench",
+   "window": {
+    "offset": 7040000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0082",
+   "source": "auto",
+   "startSample": 43782410,
+   "durationSamples": 500,
+   "confidence": 0.282,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.958,
+   "truth": "blink",
+   "window": {
+    "offset": 7128000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0083",
+   "source": "auto",
+   "startSample": 43814313,
+   "durationSamples": 500,
+   "confidence": 0.352,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.902,
+   "truth": "blink",
+   "window": {
+    "offset": 7216000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0084",
+   "source": "auto",
+   "startSample": 44248084,
+   "durationSamples": 711,
+   "confidence": 0.229,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.928,
+   "truth": "head-shake",
+   "window": {
+    "offset": 7304000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0085",
+   "source": "auto",
+   "startSample": 44562068,
+   "durationSamples": 754,
+   "confidence": 0.47,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.994,
+   "truth": "head-shake",
+   "window": {
+    "offset": 7392000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0086",
+   "source": "auto",
+   "startSample": 44592118,
+   "durationSamples": 500,
+   "confidence": 0.386,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.981,
+   "truth": "blink",
+   "window": {
+    "offset": 7480000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0087",
+   "source": "auto",
+   "startSample": 45791972,
+   "durationSamples": 628,
+   "confidence": 0.411,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.929,
+   "truth": "clench",
+   "window": {
+    "offset": 7568000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0088",
+   "source": "auto",
+   "startSample": 46921242,
+   "durationSamples": 500,
+   "confidence": 0.364,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.95,
+   "truth": "blink",
+   "window": {
+    "offset": 7656000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0089",
+   "source": "auto",
+   "startSample": 46962894,
+   "durationSamples": 454,
+   "confidence": 0.348,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.939,
+   "truth": "clench",
+   "window": {
+    "offset": 7744000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0090",
+   "source": "auto",
+   "startSample": 47263937,
+   "durationSamples": 4450,
+   "confidence": 0.839,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.944,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 7832000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0091",
+   "source": "patientButton",
+   "startSample": 47264736,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.982,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 7920000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0092",
+   "source": "auto",
+   "startSample": 47739674,
+   "durationSamples": 500,
+   "confidence": 0.238,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.941,
+   "truth": "blink",
+   "window": {
+    "offset": 8008000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0093",
+   "source": "auto",
+   "startSample": 47936645,
+   "durationSamples": 810,
+   "confidence": 0.335,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.905,
+   "truth": "head-shake",
+   "window": {
+    "offset": 8096000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0094",
+   "source": "auto",
+   "startSample": 48156188,
+   "durationSamples": 838,
+   "confidence": 0.224,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.994,
+   "truth": "head-shake",
+   "window": {
+    "offset": 8184000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0095",
+   "source": "auto",
+   "startSample": 48604725,
+   "durationSamples": 500,
+   "confidence": 0.354,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.965,
+   "truth": "blink",
+   "window": {
+    "offset": 8272000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0096",
+   "source": "auto",
+   "startSample": 48630651,
+   "durationSamples": 893,
+   "confidence": 0.484,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.99,
+   "truth": "head-shake",
+   "window": {
+    "offset": 8360000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0097",
+   "source": "auto",
+   "startSample": 50037866,
+   "durationSamples": 726,
+   "confidence": 0.543,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.902,
+   "truth": "clench",
+   "window": {
+    "offset": 8448000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0098",
+   "source": "auto",
+   "startSample": 50794255,
+   "durationSamples": 683,
+   "confidence": 0.435,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.931,
+   "truth": "head-shake",
+   "window": {
+    "offset": 8536000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0099",
+   "source": "auto",
+   "startSample": 52138050,
+   "durationSamples": 500,
+   "confidence": 0.376,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.929,
+   "truth": "blink",
+   "window": {
+    "offset": 8624000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0100",
+   "source": "auto",
+   "startSample": 53064601,
+   "durationSamples": 681,
+   "confidence": 0.496,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.984,
+   "truth": "head-shake",
+   "window": {
+    "offset": 8712000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0101",
+   "source": "auto",
+   "startSample": 53704468,
+   "durationSamples": 389,
+   "confidence": 0.604,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.997,
+   "truth": "clench",
+   "window": {
+    "offset": 8800000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0102",
+   "source": "auto",
+   "startSample": 54454717,
+   "durationSamples": 870,
+   "confidence": 0.46,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.934,
+   "truth": "head-shake",
+   "window": {
+    "offset": 8888000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0103",
+   "source": "auto",
+   "startSample": 55005501,
+   "durationSamples": 500,
+   "confidence": 0.286,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.931,
+   "truth": "blink",
+   "window": {
+    "offset": 8976000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0104",
+   "source": "auto",
+   "startSample": 55244688,
+   "durationSamples": 932,
+   "confidence": 0.442,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.955,
+   "truth": "head-shake",
+   "window": {
+    "offset": 9064000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0105",
+   "source": "auto",
+   "startSample": 55623025,
+   "durationSamples": 2361,
+   "confidence": 0.839,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.954,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 9152000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0106",
+   "source": "patientButton",
+   "startSample": 55624930,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.954,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 9240000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0107",
+   "source": "auto",
+   "startSample": 55937670,
+   "durationSamples": 723,
+   "confidence": 0.33,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.981,
+   "truth": "head-shake",
+   "window": {
+    "offset": 9328000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0108",
+   "source": "auto",
+   "startSample": 56404969,
+   "durationSamples": 551,
+   "confidence": 0.378,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.991,
+   "truth": "clench",
+   "window": {
+    "offset": 9416000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0109",
+   "source": "auto",
+   "startSample": 56662523,
+   "durationSamples": 772,
+   "confidence": 0.34,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.967,
+   "truth": "head-shake",
+   "window": {
+    "offset": 9504000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0110",
+   "source": "auto",
+   "startSample": 56725019,
+   "durationSamples": 3738,
+   "confidence": 0.915,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.927,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 9592000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0111",
+   "source": "patientButton",
+   "startSample": 56725545,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.927,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 9680000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0112",
+   "source": "auto",
+   "startSample": 57791715,
+   "durationSamples": 900,
+   "confidence": 0.464,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.958,
+   "truth": "head-shake",
+   "window": {
+    "offset": 9768000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0113",
+   "source": "auto",
+   "startSample": 59122819,
+   "durationSamples": 500,
+   "confidence": 0.291,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.964,
+   "truth": "blink",
+   "window": {
+    "offset": 9856000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0114",
+   "source": "auto",
+   "startSample": 61753832,
+   "durationSamples": 697,
+   "confidence": 0.498,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.925,
+   "truth": "clench",
+   "window": {
+    "offset": 9944000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0115",
+   "source": "auto",
+   "startSample": 61877103,
+   "durationSamples": 513,
+   "confidence": 0.373,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.994,
+   "truth": "clench",
+   "window": {
+    "offset": 10032000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0116",
+   "source": "auto",
+   "startSample": 61975221,
+   "durationSamples": 976,
+   "confidence": 0.516,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.937,
+   "truth": "head-shake",
+   "window": {
+    "offset": 10120000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0117",
+   "source": "auto",
+   "startSample": 62054010,
+   "durationSamples": 485,
+   "confidence": 0.374,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.928,
+   "truth": "clench",
+   "window": {
+    "offset": 10208000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0118",
+   "source": "patientButton",
+   "startSample": 62726313,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.921,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 10296000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0119",
+   "source": "auto",
+   "startSample": 62906547,
+   "durationSamples": 704,
+   "confidence": 0.599,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.957,
+   "truth": "clench",
+   "window": {
+    "offset": 10384000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  }
+ ]
+}

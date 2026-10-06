@@ -1,0 +1,113 @@
+{
+ "formatVersion": 1,
+ "synthetic": true,
+ "generator": "tools/make_demo_dataset.py",
+ "seed": 7,
+ "startUtc": "2026-10-05T00:00:00Z",
+ "utcOffsetMinutes": 480,
+ "durationSec": 3600,
+ "eeg": {
+  "rateHz": 250,
+  "channels": 2,
+  "uvPerCount": 0.1
+ },
+ "imu": {
+  "rateHz": 100,
+  "gPerCount": 0.00048828125,
+  "dpsPerCount": 0.06103515625
+ },
+ "events": [
+  {
+   "id": "e0001",
+   "source": "auto",
+   "startSample": 56474,
+   "durationSamples": 398,
+   "confidence": 0.439,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.901,
+   "truth": "clench",
+   "window": {
+    "offset": 0,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0002",
+   "source": "auto",
+   "startSample": 381761,
+   "durationSamples": 500,
+   "confidence": 0.229,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.98,
+   "truth": "blink",
+   "window": {
+    "offset": 88000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0003",
+   "source": "auto",
+   "startSample": 561847,
+   "durationSamples": 841,
+   "confidence": 0.339,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.915,
+   "truth": "head-shake",
+   "window": {
+    "offset": 176000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0004",
+   "source": "auto",
+   "startSample": 582704,
+   "durationSamples": 3340,
+   "confidence": 0.879,
+   "channels": [
+    0,
+    1
+   ],
+   "quality": 0.963,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 264000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0005",
+   "source": "patientButton",
+   "startSample": 871426,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.957,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 352000,
+    "length": 88000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  }
+ ]
+}

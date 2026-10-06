@@ -1,0 +1,100 @@
+{
+ "formatVersion": 1,
+ "synthetic": true,
+ "generator": "tools/make_demo_dataset.py",
+ "seed": 11,
+ "startUtc": "2026-10-05T00:00:00Z",
+ "utcOffsetMinutes": 480,
+ "durationSec": 3600,
+ "eeg": {
+  "rateHz": 250,
+  "channels": 4,
+  "uvPerCount": 0.1
+ },
+ "imu": {
+  "rateHz": 100,
+  "gPerCount": 0.00048828125,
+  "dpsPerCount": 0.06103515625
+ },
+ "events": [
+  {
+   "id": "e0001",
+   "source": "auto",
+   "startSample": 88535,
+   "durationSamples": 500,
+   "confidence": 0.358,
+   "channels": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "quality": 0.95,
+   "truth": "blink",
+   "window": {
+    "offset": 0,
+    "length": 128000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0002",
+   "source": "auto",
+   "startSample": 168886,
+   "durationSamples": 769,
+   "confidence": 0.554,
+   "channels": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "quality": 0.96,
+   "truth": "clench",
+   "window": {
+    "offset": 128000,
+    "length": 128000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0003",
+   "source": "patientButton",
+   "startSample": 620427,
+   "durationSamples": 0,
+   "confidence": null,
+   "channels": [],
+   "quality": 0.902,
+   "truth": "patient-marker",
+   "window": {
+    "offset": 256000,
+    "length": 128000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  },
+  {
+   "id": "e0004",
+   "source": "auto",
+   "startSample": 825237,
+   "durationSamples": 3270,
+   "confidence": 0.914,
+   "channels": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "quality": 0.95,
+   "truth": "seizure-like",
+   "window": {
+    "offset": 384000,
+    "length": 128000,
+    "preSec": 15,
+    "postSec": 25
+   }
+  }
+ ]
+}
