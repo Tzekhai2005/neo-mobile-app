@@ -59,9 +59,10 @@ class SharedState:
     def __init__(self):
         self.lock = threading.Lock()
         self.manual_override = False
-        self.source_mode = "INTERNAL_SIM"  # "INTERNAL_SIM", "NEO_FAKE", "HARDWARE"
+        self.source_mode = "DISCONNECTED"  # "DISCONNECTED", "NEO_FAKE", "HARDWARE", "INTERNAL_SIM"
         self.neo_fake_connected = False
         self.hardware_connected = False
+        self.last_eeg_packet_ts = 0.0
         self.sample_idx = 0
         self.battery_pct = 92
         self.battery_mv = 3980
@@ -76,7 +77,32 @@ class SharedState:
         self.seizure_risk = 7
 
     @property
+    def is_live_connected(self):
+        return self.last_eeg_packet_ts > 0 and (time.time() - self.last_eeg_packet_ts) < 0.9
+
+    @property
+    def live_source_name(self):
+        return "DISCONNECTED" if not self.is_live_connected else self.source_mode
+
+    @property
+    def live_neo_fake_connected(self):
+        return self.neo_fake_connected and self.is_live_connected
+
+    @property
+    def live_hardware_connected(self):
+        return self.hardware_connected and self.is_live_connected
+
+    @property
     def source_meta(self):
+        if not self.is_live_connected:
+            return {
+                "id": "DISCONNECTED",
+                "label": "DISCONNECTED",
+                "badge": "DISCONNECTED",
+                "color": "#64748b",
+                "detail": "Awaiting live raw EEG packets",
+                "icon": "disconnected"
+            }
         if self.source_mode == "HARDWARE":
             return {
                 "id": "HARDWARE",
@@ -95,7 +121,7 @@ class SharedState:
                 "detail": "Bridged to macOS neo-fake daemon (TCP 5001)",
                 "icon": "bridge"
             }
-        else:
+        elif self.source_mode == "INTERNAL_SIM":
             return {
                 "id": "INTERNAL_SIM",
                 "label": "INTERNAL STAGE SIMULATOR",
@@ -104,6 +130,14 @@ class SharedState:
                 "detail": "Autonomous 250 SPS Synthetic Rhythm (Pitch Mode)",
                 "icon": "simulator"
             }
+        return {
+            "id": "DISCONNECTED",
+            "label": "DISCONNECTED",
+            "badge": "DISCONNECTED",
+            "color": "#64748b",
+            "detail": "Awaiting live raw EEG packets",
+            "icon": "disconnected"
+        }
 
 state = SharedState()
 clients = set()
@@ -132,10 +166,11 @@ class NeoFakeBridge(threading.Thread):
             # Check if neo-fake (or hardware TCP bridge) is listening on localhost:5001
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(1.5)
+                sock.settimeout(0.9)
                 sock.connect(("127.0.0.1", PORT_TCP_CTRL))
                 print("\n[+] SUCCESS: Connected to neo-fake / hardware on TCP port 5001!")
                 state.neo_fake_connected = True
+                state.last_eeg_packet_ts = time.time()
                 if not state.manual_override:
                     state.source_mode = "NEO_FAKE"
 
@@ -146,7 +181,7 @@ class NeoFakeBridge(threading.Thread):
                     udp.bind(("127.0.0.1", PORT_UDP_DATA))
                 except Exception:
                     pass
-                udp.settimeout(1.0)
+                udp.settimeout(0.75)
 
                 # Send GET_INFO
                 sock.sendall(make_cmd_frame(CMD_GET_INFO, b"", seq=1))
@@ -176,20 +211,25 @@ class NeoFakeBridge(threading.Thread):
                     except Exception:
                         break
 
-                print("[-] Disconnected from external source. Falling back to Internal Stage Simulator.")
+                print("[-] Disconnected from external source. Waiting for live EEG packets.")
                 state.neo_fake_connected = False
+                state.last_eeg_packet_ts = 0.0
                 if not state.manual_override:
-                    state.source_mode = "INTERNAL_SIM"
+                    state.source_mode = "DISCONNECTED"
                 sock.close()
                 udp.close()
             except Exception:
                 state.neo_fake_connected = False
+                state.last_eeg_packet_ts = 0.0
                 if not state.manual_override and state.source_mode == "NEO_FAKE":
-                    state.source_mode = "INTERNAL_SIM"
+                    state.source_mode = "DISCONNECTED"
 
-            time.sleep(2.0)
+            time.sleep(0.75)
 
     def parse_eeg(self, data: bytes):
+        state.last_eeg_packet_ts = time.time()
+        state.neo_fake_connected = True
+        state.hardware_connected = False
         payload = data[22:-2]
         if len(payload) < 4:
             return
@@ -255,10 +295,11 @@ class NeoFakeBridge(threading.Thread):
             "battery": state.battery_pct,
             "battery_mv": state.battery_mv,
             "lead_off": state.lead_off,
-            "source": state.source_mode,
+            "source": state.live_source_name,
             "source_meta": meta,
-            "neo_fake_connected": state.neo_fake_connected,
-            "hardware_connected": state.hardware_connected
+            "connected": state.is_live_connected,
+            "neo_fake_connected": state.live_neo_fake_connected,
+            "hardware_connected": state.live_hardware_connected
         })
 
 class StageSimulator(threading.Thread):
@@ -305,6 +346,7 @@ class StageSimulator(threading.Thread):
                     })
 
                 meta = state.source_meta
+                state.last_eeg_packet_ts = time.time()
                 broadcast_sse("eeg", {
                     "samples": batch,
                     "risk": state.seizure_risk,
@@ -314,10 +356,11 @@ class StageSimulator(threading.Thread):
                     "battery": state.battery_pct,
                     "battery_mv": state.battery_mv,
                     "lead_off": state.lead_off,
-                    "source": state.source_mode,
+                    "source": state.live_source_name,
                     "source_meta": meta,
-                    "neo_fake_connected": state.neo_fake_connected,
-                    "hardware_connected": state.hardware_connected
+                    "connected": state.is_live_connected,
+                    "neo_fake_connected": state.live_neo_fake_connected,
+                    "hardware_connected": state.live_hardware_connected
                 })
                 elapsed = time.time() - t0
                 time.sleep(max(0.002, 0.040 - elapsed))
@@ -357,10 +400,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             meta = state.source_meta
             self.send_json({
                 "status": "online",
-                "source": state.source_mode,
+                "source": state.live_source_name,
                 "source_meta": meta,
-                "neo_fake_connected": state.neo_fake_connected,
-                "hardware_connected": state.hardware_connected,
+                "connected": state.is_live_connected,
+                "neo_fake_connected": state.live_neo_fake_connected,
+                "hardware_connected": state.live_hardware_connected,
                 "seizure_active": state.seizure_active,
                 "battery": state.battery_pct
             })
@@ -385,8 +429,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 requested = req.get("source", "AUTO")
                 if requested == "AUTO":
                     state.manual_override = False
-                    state.source_mode = "NEO_FAKE" if state.neo_fake_connected else "INTERNAL_SIM"
-                elif requested in ("INTERNAL_SIM", "NEO_FAKE", "HARDWARE"):
+                    state.source_mode = "NEO_FAKE" if state.neo_fake_connected else "DISCONNECTED"
+                elif requested in ("DISCONNECTED", "INTERNAL_SIM", "NEO_FAKE", "HARDWARE"):
                     state.manual_override = True
                     state.source_mode = requested
                 print(f"[!] Source mode changed to: {state.source_mode} (manual={state.manual_override})")

@@ -705,29 +705,27 @@
   <section class="tab-page active" id="tab-telemetry">
 
     <!-- Crystal-Clear Data Source Indicator Strip -->
-    <div class="source-strip source-hw" id="source-strip" style="cursor:default;">
+    <div class="source-strip source-sim" id="source-strip" style="cursor:default;">
       <div class="source-strip-main">
         <div class="source-pill-row">
-          <span class="source-pill pill-hw" id="source-pill">
+          <span class="source-pill pill-sim" id="source-pill">
             <span class="source-dot"></span>
-            <span id="source-pill-txt">CONNECTED</span>
+            <span id="source-pill-txt">DISCONNECTED</span>
           </span>
-          <span class="source-strip-title" id="source-title-txt">Raw EEG stream active</span>
         </div>
-        <div class="source-strip-desc" id="source-desc-txt">250 SPS live stream • connected when the device is available</div>
       </div>
     </div>
 
     <div class="clinical-banner" id="banner-card">
       <div>
-        <div class="banner-sub">Electrophysiological State</div>
+        <div class="banner-sub">STATUS</div>
         <div class="banner-title" id="banner-status-txt">
-          <span>● Normal Resting Continuity</span>
+          <span>DISCONNECTED</span>
         </div>
       </div>
       <div class="banner-right">
-        <div class="metric-hero" id="risk-score-txt">7%</div>
-        <div class="metric-caption">Paroxysm Risk</div>
+        <div class="metric-hero" id="risk-score-txt">0%</div>
+        <div class="metric-caption">LIVE</div>
       </div>
     </div>
 
@@ -963,6 +961,7 @@
     evtSource.addEventListener("eeg", (e) => {
       try {
         const data = JSON.parse(e.data);
+        console.log('[widget-debug] eeg payload', data);
         const samples = data.samples;
 
         for (let i = 0; i < samples.length; i++) {
@@ -983,38 +982,32 @@
         const bannerTxt = document.getElementById("banner-status-txt");
         const activeCard = document.getElementById("active-seizure-card");
 
-        if (data.seizure_active) {
-          banner.classList.add("critical");
-          bannerTxt.innerHTML = "<span>⚠️ Paroxysmal Discharge Detected (" + data.duration + "s)</span>";
-          activeCard.style.display = "flex";
-          document.getElementById("active-dur-txt").textContent = data.duration + "s";
-          document.getElementById("spike-tally").textContent = (data.spikes || 42) + " Discharges";
-          isAlert = true;
-        } else {
-          banner.classList.remove("critical");
-          bannerTxt.innerHTML = "<span>● Normal Resting Continuity</span>";
-          activeCard.style.display = "none";
-          isAlert = false;
+        const isConnected = Boolean(data.connected);
+
+        if (banner && bannerTxt) {
+          banner.classList.toggle("critical", !isConnected);
+          bannerTxt.innerHTML = "<span>" + (isConnected ? "CONNECTED" : "DISCONNECTED") + "</span>";
         }
+
+        if (activeCard) {
+          activeCard.style.display = "none";
+        }
+        isAlert = false;
 
         const strip = document.getElementById("source-strip");
         const pill = document.getElementById("source-pill");
         const pillTxt = document.getElementById("source-pill-txt");
-        const titleTxt = document.getElementById("source-title-txt");
-        const descTxt = document.getElementById("source-desc-txt");
 
-        if (strip && pill && pillTxt && titleTxt && descTxt) {
+        if (strip && pill && pillTxt) {
           strip.classList.remove("source-sim", "source-fake", "source-hw");
-          strip.classList.add("source-hw");
+          strip.classList.add(isConnected ? "source-hw" : "source-sim");
           pill.classList.remove("pill-sim", "pill-fake", "pill-hw");
-          pill.classList.add("pill-hw");
-          pillTxt.textContent = data.connected ? "CONNECTED" : "DISCONNECTED";
-          titleTxt.textContent = data.connected ? "Raw EEG stream active" : "Awaiting device connection";
-          descTxt.textContent = data.connected ? "250 SPS live stream • raw EEG is streaming" : "250 SPS live stream • waiting for device";
+          pill.classList.add(isConnected ? "pill-hw" : "pill-sim");
+          pillTxt.textContent = isConnected ? "CONNECTED" : "DISCONNECTED";
         }
 
         const sn = document.getElementById("source-note");
-        if (sn) sn.textContent = data.connected ? "Live raw UDP stream" : "Awaiting live raw stream";
+        if (sn) sn.textContent = isConnected ? "Connected" : "Disconnected";
       } catch (err) {}
     });
 

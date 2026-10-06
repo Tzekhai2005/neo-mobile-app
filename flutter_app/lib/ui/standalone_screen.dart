@@ -55,6 +55,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
 
   StreamSubscription<EegSample>? _eegSub;
   StreamSubscription<NeoDeviceInfo>? _discoverySub;
+  StreamSubscription<bool>? _connectionSub;
 
   // ── State ──────────────────────────────────────────────────────────────────
   _SourceMode _source = _SourceMode.disconnected;
@@ -71,6 +72,8 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   int _lastChannelCount = 2;
   Timer? _durationTimer;
   Timer? _discoveryTimeoutTimer;
+  Timer? _connectionWatchdog;
+  DateTime? _lastEegAt;
 
   final List<_DiaryEntry> _diary = [];
   int _ictalCount = 0;
@@ -92,12 +95,37 @@ class _StandaloneScreenState extends State<StandaloneScreen>
       _statusMsg = 'Scanning for Neo device on Wi-Fi…';
     });
 
+    _connectionWatchdog?.cancel();
+    _connectionWatchdog = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      final stale = _lastEegAt != null && DateTime.now().difference(_lastEegAt!).inMilliseconds >= 900;
+      if (_source == _SourceMode.connected && stale) {
+        setState(() {
+          _source = _SourceMode.disconnected;
+          _statusMsg = 'Connection lost — reconnecting…';
+        });
+      }
+    });
+
     _discoverySub?.cancel();
+    _connectionSub?.cancel();
     _client.startDiscovery();
     _discoverySub = _client.onDeviceDiscovered.listen(_onDeviceFound);
+    _connectionSub = _client.onConnectionStateChanged.listen((connected) {
+      if (!connected && mounted) {
+        setState(() {
+          _source = _SourceMode.disconnected;
+          _statusMsg = 'Disconnected — reconnecting…';
+        });
+      } else if (connected && mounted) {
+        setState(() {
+          _source = _SourceMode.connected;
+          _statusMsg = 'Streaming from ${_device?.name ?? 'Neo'}';
+        });
+      }
+    });
 
     _discoveryTimeoutTimer?.cancel();
-    _discoveryTimeoutTimer = Timer(const Duration(seconds: 5), () {
+    _discoveryTimeoutTimer = Timer(const Duration(seconds: 2), () {
       if (_source == _SourceMode.disconnected) {
         _statusMsg = 'No device connected — raw EEG unavailable';
         setState(() {});
@@ -117,6 +145,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
 
   Future<void> _connectToDevice(NeoDeviceInfo dev) async {
     _eegSub?.cancel();
+    _lastEegAt = DateTime.now();
 
     final ok = await _client.connectAndStart(dev);
     if (!ok) {
@@ -135,6 +164,14 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   }
 
   void _onSample(EegSample s) {
+    _lastEegAt = DateTime.now();
+    if (_source == _SourceMode.disconnected) {
+      setState(() {
+        _source = _SourceMode.connected;
+        _statusMsg = 'Streaming from ${_device?.name ?? 'Neo'}';
+      });
+    }
+
     final channels = s.channelsUv.isNotEmpty ? s.channelsUv : [s.ch1Uv, s.ch2Uv, s.ch3Uv, s.ch4Uv];
     _lastChannelCount = channels.length;
 
@@ -207,8 +244,10 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   void dispose() {
     _durationTimer?.cancel();
     _discoveryTimeoutTimer?.cancel();
+    _connectionWatchdog?.cancel();
     _eegSub?.cancel();
     _discoverySub?.cancel();
+    _connectionSub?.cancel();
     _client.dispose();
     _tabController.dispose();
     super.dispose();
@@ -324,10 +363,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   Widget _buildSourceStrip() {
     final connected = _source == _SourceMode.connected;
     final col = connected ? kGreen : kText3;
-    final title = connected ? (_device?.name ?? 'Neo hardware') : 'Awaiting live device';
-    final detail = connected
-        ? 'Raw EEG stream active • ${_device?.ip ?? 'connected'}'
-        : 'No device currently connected';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -348,14 +383,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
             connected ? 'CONNECTED' : 'DISCONNECTED',
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: col, fontFamily: 'monospace'),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kText1), overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Text(detail, style: const TextStyle(fontSize: 11, color: kText2)),
-          ]),
         ),
       ]),
     );

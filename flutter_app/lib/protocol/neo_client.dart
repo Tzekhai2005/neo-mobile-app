@@ -43,6 +43,9 @@ class NeoClient {
   final StreamController<String> _statusCtrl = StreamController<String>.broadcast();
   Stream<String> get statusStream => _statusCtrl.stream;
 
+  final StreamController<bool> _connectionStateCtrl = StreamController<bool>.broadcast();
+  Stream<bool> get onConnectionStateChanged => _connectionStateCtrl.stream;
+
   /// Start listening for UDP 5000 HELLO beacons
   Future<void> startDiscovery() async {
     try {
@@ -90,19 +93,32 @@ class NeoClient {
   /// Connect to the device via TCP on port 5001 and start streaming
   Future<bool> connectAndStart(NeoDeviceInfo dev) async {
     try {
+      if (_tcpSocket != null) {
+        try {
+          await _tcpSocket!.close();
+        } catch (_) {}
+        _tcpSocket = null;
+      }
+
       _statusCtrl.add("Connecting to ${dev.ip}:${dev.ctrlPort}...");
-      _tcpSocket = await Socket.connect(dev.ip, dev.ctrlPort, timeout: const Duration(seconds: 4));
+      _tcpSocket = await Socket.connect(dev.ip, dev.ctrlPort, timeout: const Duration(milliseconds: 1200));
       connectedDevice = dev;
 
       // Listen for TCP ACKs / NACKs
       _tcpSocket!.listen((data) {
         // Handle incoming ACK frames if needed
       }, onDone: () {
-        isStreaming = false;
-        _statusCtrl.add("TCP connection closed.");
+        if (isStreaming || _tcpSocket != null) {
+          isStreaming = false;
+          _connectionStateCtrl.add(false);
+          _statusCtrl.add("TCP connection closed.");
+        }
       }, onError: (e) {
-        isStreaming = false;
-        _statusCtrl.add("TCP error: $e");
+        if (isStreaming || _tcpSocket != null) {
+          isStreaming = false;
+          _connectionStateCtrl.add(false);
+          _statusCtrl.add("TCP error: $e");
+        }
       });
 
       // Send GET_INFO
@@ -116,9 +132,12 @@ class NeoClient {
 
       await _sendTcpCmd(NeoProto.cmdStart, startParams);
       isStreaming = true;
+      _connectionStateCtrl.add(true);
       _statusCtrl.add("Streaming active from ${dev.name}!");
       return true;
     } catch (e) {
+      isStreaming = false;
+      _connectionStateCtrl.add(false);
       _statusCtrl.add("Connection failed: $e");
       return false;
     }
@@ -180,14 +199,20 @@ class NeoClient {
   }
 
   Future<void> stop() async {
-    if (_tcpSocket != null && isStreaming) {
+    if (_tcpSocket != null) {
       try {
-        await _sendTcpCmd(NeoProto.cmdStop, Uint8List(0));
+        if (isStreaming) {
+          await _sendTcpCmd(NeoProto.cmdStop, Uint8List(0));
+        }
       } catch (_) {}
-      await _tcpSocket!.close();
+      try {
+        await _tcpSocket!.close();
+      } catch (_) {}
       _tcpSocket = null;
     }
     isStreaming = false;
+    connectedDevice = null;
+    _connectionStateCtrl.add(false);
     _statusCtrl.add("Stream stopped.");
   }
 
@@ -198,5 +223,6 @@ class NeoClient {
     _eegStreamCtrl.close();
     _deviceDiscoveryCtrl.close();
     _statusCtrl.close();
+    _connectionStateCtrl.close();
   }
 }
