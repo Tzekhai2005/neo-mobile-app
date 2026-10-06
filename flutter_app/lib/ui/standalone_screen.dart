@@ -6,7 +6,6 @@ import '../protocol/neo_client.dart';
 import '../protocol/neo_proto.dart';
 import '../pipeline/eeg_buffer.dart';
 import '../pipeline/seizure_detector.dart';
-import '../simulator/stage_simulator.dart';
 import 'widgets/eeg_canvas.dart';
 
 
@@ -36,16 +35,14 @@ class StandaloneScreen extends StatefulWidget {
   State<StandaloneScreen> createState() => _StandaloneScreenState();
 }
 
-enum _SourceMode { sim, connecting, hardware }
-enum _DisplayMode { raw, demo }
+enum _SourceMode { disconnected, connected }
 
 class _StandaloneScreenState extends State<StandaloneScreen>
     with SingleTickerProviderStateMixin {
 
   // ── Data engine ────────────────────────────────────────────────────────────
-  final NeoClient   _client    = NeoClient();
-  final StageSimulator _sim    = StageSimulator();
-  final SeizureDetector _det   = SeizureDetector();
+  final NeoClient _client = NeoClient();
+  final SeizureDetector _det = SeizureDetector();
 
   final EegCircularBuffer _b1 = EegCircularBuffer(capacity: 1250);
   final EegCircularBuffer _b2 = EegCircularBuffer(capacity: 1250);
@@ -60,8 +57,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   StreamSubscription<NeoDeviceInfo>? _discoverySub;
 
   // ── State ──────────────────────────────────────────────────────────────────
-  _SourceMode _source = _SourceMode.connecting;
-  _DisplayMode _displayMode = _DisplayMode.raw;
+  _SourceMode _source = _SourceMode.disconnected;
   NeoDeviceInfo? _device;
   String _statusMsg = 'Scanning for Neo device…';
   bool _seizureActive = false;
@@ -86,13 +82,13 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _startDiscovery();
   }
 
   void _startDiscovery() {
     setState(() {
-      _source = _SourceMode.connecting;
+      _source = _SourceMode.disconnected;
       _statusMsg = 'Scanning for Neo device on Wi-Fi…';
     });
 
@@ -100,11 +96,11 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     _client.startDiscovery();
     _discoverySub = _client.onDeviceDiscovered.listen(_onDeviceFound);
 
-    // If no device found in 5 s, fall back to simulator
     _discoveryTimeoutTimer?.cancel();
     _discoveryTimeoutTimer = Timer(const Duration(seconds: 5), () {
-      if (_source == _SourceMode.connecting) {
-        _fallbackToSimulator();
+      if (_source == _SourceMode.disconnected) {
+        _statusMsg = 'No device connected — raw EEG unavailable';
+        setState(() {});
       }
     });
   }
@@ -113,7 +109,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     _discoveryTimeoutTimer?.cancel();
     setState(() {
       _device = dev;
-      _source = _SourceMode.connecting;
+      _source = _SourceMode.disconnected;
       _statusMsg = 'Found ${dev.name} @ ${dev.ip} — connecting…';
     });
     _connectToDevice(dev);
@@ -121,35 +117,25 @@ class _StandaloneScreenState extends State<StandaloneScreen>
 
   Future<void> _connectToDevice(NeoDeviceInfo dev) async {
     _eegSub?.cancel();
-    _sim.dispose();
 
     final ok = await _client.connectAndStart(dev);
     if (!ok) {
-      _fallbackToSimulator();
+      setState(() {
+        _source = _SourceMode.disconnected;
+        _statusMsg = 'Connection failed — raw EEG unavailable';
+      });
       return;
     }
     setState(() {
-      _source = _SourceMode.hardware;
+      _source = _SourceMode.connected;
       _batteryPct = dev.batteryPct;
       _statusMsg = 'Streaming from ${dev.name}';
     });
     _eegSub = _client.eegStream.listen(_onSample);
   }
 
-  void _fallbackToSimulator() {
-    _eegSub?.cancel();
-    _sim.start();
-    setState(() {
-      _source = _SourceMode.sim;
-      _statusMsg = 'No hardware found — Simulator active';
-    });
-    _eegSub = _sim.eegStream.listen(_onSample);
-  }
-
   void _onSample(EegSample s) {
-    final channels = _displayMode == _DisplayMode.raw && s.channelsUv.isNotEmpty
-        ? s.channelsUv
-        : [s.ch1Uv, s.ch2Uv, s.ch3Uv, s.ch4Uv];
+    final channels = s.channelsUv.isNotEmpty ? s.channelsUv : [s.ch1Uv, s.ch2Uv, s.ch3Uv, s.ch4Uv];
     _lastChannelCount = channels.length;
 
     if (channels.isNotEmpty) {
@@ -167,7 +153,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
 
     final r = _det.processSample(s.ch1Uv);
     _seizureRisk = r.riskPct;
-    final nowSeizure = _sim.isSeizureActive || r.isSeizureOnset;
+    final nowSeizure = r.isSeizureOnset;
     if (nowSeizure && !_seizureActive) _onSeizureStart();
     if (!nowSeizure && _seizureActive) _onSeizureEnd();
     if (mounted) setState(() {});
@@ -195,29 +181,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  void _triggerSeizureDemo() {
-    _sim.triggerSeizure();
-    _showToast('⚡ Ictal Paroxysm Triggered');
-  }
-
-  void _resetBaseline() {
-    _sim.resetSeizure();
-    _showToast('✓ Baseline Restored');
-  }
-
-  void _stampMarker() {
-    _markerCount++;
-    final t = TimeOfDay.now();
-    _diary.insert(0, _DiaryEntry(
-      type: 'marker',
-      time: t,
-      heading: 'SW1 Patient Marker',
-      body: 'Patient-initiated event tag. Correlates with subjective aura.',
-    ));
-    _showToast('📍 SW1 Marker @ ${_fmt(t)}');
-    setState(() {});
-  }
-
   void _cycleScale() {
     const scales = [25.0, 50.0, 100.0, 200.0];
     final i = (scales.indexOf(_uvScale) + 1) % scales.length;
@@ -247,7 +210,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     _eegSub?.cancel();
     _discoverySub?.cancel();
     _client.dispose();
-    _sim.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -273,8 +235,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
                 children: [
                   _buildTelemetryTab(),
                   _buildDiaryTab(),
-                  _buildHardwareTab(),
-                  _buildBenchTab(),
+                  _buildExportTab(),
                 ],
               ),
             ),
@@ -319,13 +280,10 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   }
 
   Widget _buildSourcePill() {
-    Color col;
-    String label;
-    switch (_source) {
-      case _SourceMode.hardware:  col = kGreen;  label = 'LIVE'; break;
-      case _SourceMode.connecting: col = kAmber; label = 'SCANNING'; break;
-      case _SourceMode.sim:       col = kPurple; label = 'SIM'; break;
-    }
+    final connected = _source == _SourceMode.connected;
+    final col = connected ? kGreen : kText3;
+    final label = connected ? 'CONNECTED' : 'DISCONNECTED';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -349,9 +307,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     return SingleChildScrollView(
       padding: const EdgeInsets.all(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _buildDisplayModeToggle(),
-        const SizedBox(height: 10),
-        // Source strip
         _buildSourceStrip(),
         const SizedBox(height: 10),
         // Seizure / state banner
@@ -366,94 +321,43 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     );
   }
 
-  Widget _buildDisplayModeToggle() {
-    final rawActive = _displayMode == _DisplayMode.raw;
+  Widget _buildSourceStrip() {
+    final connected = _source == _SourceMode.connected;
+    final col = connected ? kGreen : kText3;
+    final title = connected ? (_device?.name ?? 'Neo hardware') : 'Awaiting live device';
+    final detail = connected
+        ? 'Raw EEG stream active • ${_device?.ip ?? 'connected'}'
+        : 'No device currently connected';
+
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: kSurface1,
+        color: col.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBorder),
+        border: Border.all(color: col.withOpacity(0.35)),
       ),
       child: Row(children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _displayMode = _DisplayMode.raw),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: rawActive ? kCh1.withOpacity(0.14) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text('RAW UDP', textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: rawActive ? kCh1 : kText3)),
-            ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: col.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: col.withOpacity(0.4)),
+          ),
+          child: Text(
+            connected ? 'CONNECTED' : 'DISCONNECTED',
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: col, fontFamily: 'monospace'),
           ),
         ),
+        const SizedBox(width: 10),
         Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _displayMode = _DisplayMode.demo),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: !rawActive ? kPurple.withOpacity(0.14) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text('DEMO', textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: !rawActive ? kPurple : kText3)),
-            ),
-          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kText1), overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text(detail, style: const TextStyle(fontSize: 11, color: kText2)),
+          ]),
         ),
       ]),
-    );
-  }
-
-  Widget _buildSourceStrip() {
-    Color col; String badge; String title; String detail;
-    switch (_source) {
-      case _SourceMode.hardware:
-        col = kGreen; badge = 'LIVE HARDWARE';
-        title = _device?.name ?? 'Neo v1';
-        detail = 'ADS1292R • 250 SPS • IP: ${_device?.ip ?? '—'}';
-        break;
-      case _SourceMode.connecting:
-        col = kAmber; badge = 'SCANNING';
-        title = 'Searching for Neo device…';
-        detail = 'UDP HELLO broadcast on port 5000';
-        break;
-      case _SourceMode.sim:
-        col = kPurple; badge = 'INTERNAL SIM';
-        title = 'Autonomous Simulation Engine';
-        detail = '250 SPS Synthetic Rhythm • Tap to retry hardware';
-        break;
-    }
-    return GestureDetector(
-      onTap: _source == _SourceMode.sim ? _startDiscovery : null,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: col.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: col.withOpacity(0.35)),
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(color: col.withOpacity(0.2), borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: col.withOpacity(0.4))),
-                child: Text(badge, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: col, fontFamily: 'monospace')),
-              ),
-              const SizedBox(width: 8),
-              Flexible(child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kText1), overflow: TextOverflow.ellipsis)),
-            ]),
-            const SizedBox(height: 3),
-            Text(detail, style: const TextStyle(fontSize: 11, color: kText2)),
-          ])),
-          if (_source == _SourceMode.sim)
-            Icon(Icons.refresh_rounded, color: col.withOpacity(0.6), size: 18),
-        ]),
-      ),
     );
   }
 
@@ -490,11 +394,8 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   }
 
   Widget _buildOscilloscope() {
-    final rawChannels = _displayMode == _DisplayMode.raw ? _lastChannelCount : 2;
-    final showDual = _displayMode == _DisplayMode.raw ? rawChannels > 2 : _isDual;
-    final displayChannelLabel = _displayMode == _DisplayMode.raw
-        ? '${rawChannels}-CH'
-        : (showDual ? '4-CH' : '2-CH');
+    final rawChannels = _lastChannelCount;
+    final showDual = rawChannels > 2;
 
     return Container(
       decoration: BoxDecoration(
@@ -503,14 +404,13 @@ class _StandaloneScreenState extends State<StandaloneScreen>
         border: Border.all(color: kBorder),
       ),
       child: Column(children: [
-        // Header row
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Row(children: [
-              _ChipDot(color: kCh1, label: _displayMode == _DisplayMode.raw ? 'Raw Ch1' : 'Ch1 Ant'),
+              _ChipDot(color: kCh1, label: 'Raw Ch1'),
               const SizedBox(width: 10),
-              _ChipDot(color: kCh2, label: _displayMode == _DisplayMode.raw ? 'Raw Ch2' : 'Ch2 Post'),
+              _ChipDot(color: kCh2, label: 'Raw Ch2'),
               if (showDual) ...[
                 const SizedBox(width: 10),
                 _ChipDot(color: const Color(0xFFF59E0B), label: 'Ch3'),
@@ -518,25 +418,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
                 _ChipDot(color: const Color(0xFF10B981), label: 'Ch4'),
               ],
             ]),
-            Row(children: [
-              _CtrlBtn(label: '${_uvScale.toInt()} µV', onTap: _cycleScale, active: true),
-              const SizedBox(width: 6),
-              if (_displayMode == _DisplayMode.demo)
-                _CtrlBtn(label: displayChannelLabel, onTap: () => setState(() => _isDual = !_isDual), active: showDual)
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: kSurface2,
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(color: kBorder),
-                  ),
-                  child: Text(displayChannelLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kText2)),
-                ),
-            ]),
+            _CtrlBtn(label: '${_uvScale.toInt()} µV', onTap: _cycleScale, active: true),
           ]),
         ),
-        // Canvas
         SizedBox(
           height: 200,
           child: EegCanvasWidget(
@@ -549,7 +433,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
             isSeizure: _seizureActive,
           ),
         ),
-        // Footer
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -577,10 +460,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        _VitalTile(label: 'Data Source', value:
-          _source == _SourceMode.hardware ? 'Live Hardware' :
-          _source == _SourceMode.connecting ? 'Scanning…' : 'Simulator',
-          note: _device?.ip ?? 'UDP 5000'),
+        _VitalTile(label: 'Connection', value:
+          _source == _SourceMode.connected ? 'Connected' : 'Disconnected',
+          note: _device?.ip ?? 'Awaiting device'),
         _VitalTile(label: 'Battery', value: '$_batteryPct%',
             note: 'BQ25180 Power Path'),
         _VitalTile(label: 'Ictal Events', value: '$_ictalCount',
@@ -599,7 +481,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
         const Text('Ambulatory Event Diary',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kText1)),
         const SizedBox(height: 2),
-        const Text('SeizeIT2 Clinical Trial Protocol — continuous event record.',
+        const Text('Page in progress — event capture is live, but diary tooling is still being finalized.',
             style: TextStyle(fontSize: 12, color: kText3)),
         const SizedBox(height: 14),
         Row(children: [
@@ -621,6 +503,30 @@ class _StandaloneScreenState extends State<StandaloneScreen>
                 itemBuilder: (_, i) => _DiaryCard(entry: _diary[i]),
               ),
         ),
+      ]),
+    );
+  }
+
+  // ── Export tab ────────────────────────────────────────────────────────────
+  Widget _buildExportTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('Clinical Export',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kText1)),
+        const SizedBox(height: 4),
+        const Text('Page in progress — clinician export and PDF packaging will be completed here.',
+            style: TextStyle(fontSize: 12, color: kText3)),
+        const SizedBox(height: 16),
+        _BenchBtn(label: 'Generate Study Summary', sub: 'SeizeIT2 clinical trial report',
+            color: kCh1, onTap: () => _showReport()),
+        const SizedBox(height: 16),
+        _SpecGroup(title: 'Current Summary', items: [
+          ['Connection', _source == _SourceMode.connected ? 'Connected' : 'Disconnected'],
+          ['Ictal Events', '$_ictalCount'],
+          ['SW1 Markers', '$_markerCount'],
+          ['Status', _statusMsg],
+        ]),
       ]),
     );
   }
@@ -674,69 +580,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     );
   }
 
-  // ── Bench / Demo tab ───────────────────────────────────────────────────────
-  Widget _buildBenchTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Text('Clinical Test Bench',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kText1)),
-        const SizedBox(height: 2),
-        const Text('Controlled tools for demo validation and stage demonstration.',
-            style: TextStyle(fontSize: 12, color: kText3)),
-        const SizedBox(height: 16),
-        const _SectionLabel('SIGNAL SIMULATION'),
-        const SizedBox(height: 8),
-        GridView.count(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10,
-          childAspectRatio: 2.0, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-          children: [
-            _BenchBtn(label: 'Trigger Ictal Paroxysm', sub: '3.2 Hz spike-wave',
-                color: kRed, onTap: _triggerSeizureDemo),
-            _BenchBtn(label: 'Reset Baseline', sub: 'Restore resting alpha',
-                color: kText2, onTap: _resetBaseline),
-            _BenchBtn(label: 'SW1 Patient Marker', sub: 'Tactile event stamp',
-                color: kAmber, onTap: _stampMarker),
-            _BenchBtn(label: 'Lead-Off Fault', sub: 'Impedance > 50 kΩ',
-                color: kText2, onTap: () {
-                  setState(() => _leadOff = true);
-                  _showToast('⚠️ Lead-Off on IN1P');
-                  Future.delayed(const Duration(seconds: 5), () {
-                    if (mounted) setState(() => _leadOff = false);
-                    _showToast('✓ Electrode Contact Restored');
-                  });
-                }),
-          ],
-        ),
-        const SizedBox(height: 20),
-        const _SectionLabel('HARDWARE CONNECTION'),
-        const SizedBox(height: 8),
-        _BenchBtn(label: 'Retry Hardware Discovery', sub: 'Scan UDP 5000 for Neo HELLO beacon',
-            color: kGreen, onTap: _startDiscovery),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: kSurface1, borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kBorder)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('STATUS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kText3, letterSpacing: 0.8)),
-            const SizedBox(height: 6),
-            Text(_statusMsg, style: const TextStyle(fontSize: 12, color: kText2, fontFamily: 'monospace')),
-            if (_device != null) ...[
-              const SizedBox(height: 4),
-              Text('Device: ${_device!.name}  •  ${_device!.ip}:${_device!.ctrlPort}',
-                  style: const TextStyle(fontSize: 11, color: kGreen, fontFamily: 'monospace')),
-            ],
-          ]),
-        ),
-        const SizedBox(height: 20),
-        const _SectionLabel('REPORTS'),
-        const SizedBox(height: 8),
-        _BenchBtn(label: 'Generate Study Summary', sub: 'SeizeIT2 clinical trial report',
-            color: kCh1, onTap: () => _showReport()),
-      ]),
-    );
-  }
-
   void _showReport() {
     showModalBottomSheet(
       context: context,
@@ -759,7 +602,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
             _ReportRow('Patient Markers', '$_markerCount SW1 stamps'),
             _ReportRow('Peak Amplitude', '142.8 µV (Ch1)'),
             _ReportRow('Impedance', '< 5 kΩ — Optimal', color: kGreen),
-            _ReportRow('Data Source', _source == _SourceMode.hardware ? 'Live Hardware' : 'Simulator'),
+            _ReportRow('Connection', _source == _SourceMode.connected ? 'Connected' : 'Disconnected'),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: () => Navigator.pop(context),
@@ -782,10 +625,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   // ── Bottom nav ─────────────────────────────────────────────────────────────
   Widget _buildBottomNav() {
     const tabs = [
-      (Icons.monitor_heart_outlined, Icons.monitor_heart, 'Telemetry'),
+      (Icons.monitor_heart_outlined, Icons.monitor_heart, 'Raw EEG'),
       (Icons.calendar_today_outlined, Icons.calendar_today, 'Diary'),
-      (Icons.memory_outlined, Icons.memory, 'Hardware'),
-      (Icons.science_outlined, Icons.science, 'Bench'),
+      (Icons.description_outlined, Icons.description, 'Export'),
     ];
     return Container(
       decoration: const BoxDecoration(

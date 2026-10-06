@@ -299,92 +299,6 @@
       font-size: 11px;
       color: var(--text-2);
     }
-    .source-strip-action {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text-2);
-      background: rgba(255, 255, 255, 0.06);
-      padding: 5px 9px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-family: var(--font-mono);
-    }
-
-    /* Source Selector Modal Bottom Sheet */
-    .source-modal-scrim {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      z-index: 600;
-      backdrop-filter: blur(6px);
-      align-items: flex-end;
-      justify-content: center;
-    }
-    .source-modal-scrim.open { display: flex; }
-    .source-modal-sheet {
-      background: var(--surface-1);
-      width: 100%;
-      max-width: 520px;
-      border-radius: 20px 20px 0 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 20px 18px 30px 18px;
-      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
-      animation: sheetUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .source-modal-sheet h3 {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--text-1);
-    }
-    .source-modal-sheet p.sheet-sub {
-      font-size: 11px;
-      color: var(--text-3);
-      margin-bottom: 16px;
-    }
-    .source-card {
-      background: var(--surface-2);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 15px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: all 0.15s ease;
-    }
-    .source-card:active { transform: scale(0.98); }
-    .source-card.active {
-      border-color: #00b4d8;
-      background: rgba(0, 180, 216, 0.1);
-    }
-    .source-card-info h4 {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-1);
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-    .source-card-info p {
-      font-size: 11px;
-      color: var(--text-3);
-      margin-top: 3px;
-      line-height: 1.3;
-    }
-    .source-card-status {
-      font-size: 10px;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      padding: 3px 8px;
-      border-radius: 6px;
-    }
-
     /* Waveform Oscilloscope Container */
     .oscilloscope-card {
       background: #050811;
@@ -757,90 +671,6 @@
       stroke-linejoin: round;
     }
 
-    /* Presentation Bench Slide-Up Drawer */
-    .drawer-scrim {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      z-index: 400;
-      backdrop-filter: blur(4px);
-    }
-    .drawer-scrim.open { display: block; }
-    .drawer-panel {
-      position: fixed;
-      bottom: -450px;
-      left: 0;
-      right: 0;
-      background: var(--surface-1);
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 18px 18px 0 0;
-      padding: 16px 18px 28px 18px;
-      z-index: 500;
-      transition: bottom 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.7);
-    }
-    .drawer-panel.open { bottom: 0; }
-    .drawer-pill-bar {
-      width: 32px;
-      height: 4px;
-      background: var(--text-3);
-      border-radius: 2px;
-      margin: 0 auto 14px auto;
-    }
-    .drawer-heading {
-      font-size: 14px;
-      font-weight: 750;
-      color: var(--text-1);
-    }
-    .drawer-subtext {
-      font-size: 11px;
-      color: var(--text-3);
-      margin-bottom: 14px;
-    }
-    .bench-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .btn-bench-item {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      color: var(--text-1);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: left;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      transition: transform 0.1s ease;
-    }
-    .btn-bench-item span:last-child {
-      font-size: 10px;
-      font-weight: 500;
-      color: var(--text-3);
-    }
-    .btn-bench-item.trigger-ictal {
-      background: rgba(239, 68, 68, 0.12);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-    }
-    .btn-bench-item:active { transform: scale(0.97); }
-    .btn-close-bench {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border);
-      color: var(--text-2);
-      padding: 11px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -868,36 +698,23 @@
         <span class="status-dot"></span>
         <span id="label-sps">250 SPS</span>
       </div>
-      <button class="btn-bench" onclick="toggleBenchDrawer()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        BENCH
-      </button>
     </div>
   </header>
-
-  <div class="raw-demo-toggle" style="margin: 12px 16px 0 16px; padding: 4px; background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius: 12px; display:flex; gap:4px;">
-    <button id="btn-raw-mode" onclick="setDisplayMode('raw')" style="flex:1; padding:10px 8px; border:none; border-radius:10px; font-weight:800; letter-spacing:0.08em; font-size:10px; background: rgba(0,180,216,0.14); color:#7dd3fc; cursor:pointer;">RAW UDP</button>
-    <button id="btn-demo-mode" onclick="setDisplayMode('demo')" style="flex:1; padding:10px 8px; border:none; border-radius:10px; font-weight:800; letter-spacing:0.08em; font-size:10px; background: transparent; color:var(--text-3); cursor:pointer;">DEMO</button>
-  </div>
 
   <!-- TAB 1: TELEMETRY (LIVE MONITOR) -->
   <section class="tab-page active" id="tab-telemetry">
 
     <!-- Crystal-Clear Data Source Indicator Strip -->
-    <div class="source-strip source-sim" id="source-strip" onclick="openSourceModal()">
+    <div class="source-strip source-hw" id="source-strip" style="cursor:default;">
       <div class="source-strip-main">
         <div class="source-pill-row">
-          <span class="source-pill pill-sim" id="source-pill">
+          <span class="source-pill pill-hw" id="source-pill">
             <span class="source-dot"></span>
-            <span id="source-pill-txt">INTERNAL SIM</span>
+            <span id="source-pill-txt">CONNECTED</span>
           </span>
-          <span class="source-strip-title" id="source-title-txt">Autonomous Simulation Engine</span>
+          <span class="source-strip-title" id="source-title-txt">Raw EEG stream active</span>
         </div>
-        <div class="source-strip-desc" id="source-desc-txt">250 SPS Synthetic Rhythm • Standalone Pitch Mode</div>
-      </div>
-      <div class="source-strip-action">
-        <span>SWITCH</span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <div class="source-strip-desc" id="source-desc-txt">250 SPS live stream • connected when the device is available</div>
       </div>
     </div>
 
@@ -923,7 +740,6 @@
         </div>
         <div class="control-actions">
           <button class="btn-control active" id="btn-scale" onclick="cycleScale()">50 µV</button>
-          <button class="btn-control" id="btn-dual" onclick="toggleDual()">4-CH</button>
         </div>
       </div>
 
@@ -962,11 +778,11 @@
     </div>
   </section>
 
-  <!-- TAB 2: SEIZURE & EVENT DIARY -->
+  <!-- TAB 2: DIARY -->
   <section class="tab-page" id="tab-diary">
     <div class="section-headline">
       <h2>Ambulatory Event Diary</h2>
-      <p>Continuous clinical event record (SeizeIT2 Clinical Trial Protocol).</p>
+      <p>Page in progress — diary capture will continue to log raw EEG events and user markers.</p>
     </div>
 
     <div class="summary-strip">
@@ -1014,89 +830,34 @@
     </div>
   </section>
 
-  <!-- TAB 3: HARDWARE & SENSOR POD -->
-  <section class="tab-page" id="tab-hardware">
-    <div class="specs-group">
-      <div class="specs-group-title">Silicon Architecture Specifications</div>
-      <div class="specs-card">
-        <div class="specs-row">
-          <span class="specs-label">Microcontroller Unit</span>
-          <span class="specs-val">ESP32-S3FH4R2 (Dual-Core LX7)</span>
-        </div>
-        <div class="specs-row">
-          <span class="specs-label">Analog Front-End (AFE)</span>
-          <span class="specs-val">ADS1292R 24-Bit 2-CH @ 250 SPS</span>
-        </div>
-        <div class="specs-row">
-          <span class="specs-label">Motion Co-Processor (IMU)</span>
-          <span class="specs-val">ICM-42670-L 6-Axis (100 Hz FIFO)</span>
-        </div>
-        <div class="specs-row">
-          <span class="specs-label">Power Management & Fuel</span>
-          <span class="specs-val">BQ25180 Charger / MAX17048 Gauge</span>
-        </div>
-        <div class="specs-row">
-          <span class="specs-label">Local Circular Logger</span>
-          <span class="specs-val">MicroSD (4-Bit SDMMC, ~130 MB/Night)</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="specs-group">
-      <div class="specs-group-title">Sensor Pod Telemetry (FPC3 Bus)</div>
-      <div class="specs-card">
-        <div class="specs-row">
-          <span class="specs-label">Segment A: Optical PPG (HR/SpO₂)</span>
-          <span class="specs-val" style="color:var(--status-normal);">MAXM86161 (50 SPS)</span>
-        </div>
-        <div class="specs-row">
-          <span class="specs-label">Segment B: Skin Conductance (EDA)</span>
-          <span class="specs-val" style="color:var(--status-normal);">ADS1115 Active</span>
-        </div>
-        <div class="specs-row">
-          <span class="specs-label">Segment C: Environmental Temp / RH</span>
-          <span class="specs-val" style="color:var(--status-normal);">SHT40 (23.8°C • 46% RH)</span>
-        </div>
-        <div class="specs-row">
-          <span class="specs-label">Segment D: Dual Skin Temp (TMP117)</span>
-          <span class="specs-val" style="color:var(--status-normal);">36.5°C Isothermal Pair</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- TAB 4: CLINICAL REPORTS -->
-  <section class="tab-page" id="tab-reports">
+  <!-- TAB 3: CLINICAL EXPORT -->
+  <section class="tab-page" id="tab-export">
     <div class="report-sheet">
       <div class="report-sheet-header">
-        <h3>SeizeIT2 Diagnostic Report</h3>
-        <p>European Ambulatory Ear-EEG Clinical Trial Protocol Format</p>
+        <h3>Clinical Export</h3>
+        <p>Page in progress — export and PDF generation will package the EEG summary for clinicians.</p>
       </div>
 
       <div class="specs-row" style="margin-bottom:8px;">
-        <span class="specs-label">Patient Identifier:</span>
-        <span class="specs-val">SUBJ-4092 (Adult Ambulatory)</span>
+        <span class="specs-label">Patient:</span>
+        <span class="specs-val">SUBJ-4092</span>
       </div>
       <div class="specs-row" style="margin-bottom:8px;">
-        <span class="specs-label">Monitoring Duration:</span>
-        <span class="specs-val">1h 14m Continuous</span>
+        <span class="specs-label">Monitoring:</span>
+        <span class="specs-val">1h 14m</span>
       </div>
       <div class="specs-row" style="margin-bottom:8px;">
-        <span class="specs-label">Sampling Specification:</span>
-        <span class="specs-val">250 SPS • 24-Bit Unsigned</span>
-      </div>
-      <div class="specs-row" style="margin-bottom:8px;">
-        <span class="specs-label">Paroxysmal Burden:</span>
-        <span class="specs-val" id="rep-burden">1 Confirmed Episode (18.4s)</span>
+        <span class="specs-label">Ictal Events:</span>
+        <span class="specs-val" id="rep-burden">1 Confirmed</span>
       </div>
       <div class="specs-row" style="margin-bottom:14px;">
-        <span class="specs-label">Electrode Adherence:</span>
-        <span class="specs-val" style="color:var(--status-normal);">99.8% Usable Waveforms</span>
+        <span class="specs-label">Signal Quality:</span>
+        <span class="specs-val" style="color:var(--status-normal);">99.8% Usable</span>
       </div>
 
       <button class="btn-action-primary" onclick="openReportModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Export Certified Clinical PDF
+        Generate Clinical Summary
       </button>
     </div>
   </section>
@@ -1105,16 +866,12 @@
   <div class="report-modal" id="report-modal">
     <div class="report-modal-card">
       <div class="report-modal-head">
-        <h4>Certified Clinical Diagnostic Summary</h4>
+        <h4>Clinical Summary</h4>
         <button class="btn-close-modal" onclick="closeReportModal()">✕</button>
       </div>
       <div class="specs-row" style="margin-bottom:8px;">
         <span class="specs-label">Protocol:</span>
         <span class="specs-val">Neuravance Neo v0</span>
-      </div>
-      <div class="specs-row" style="margin-bottom:8px;">
-        <span class="specs-label">AFE Chip:</span>
-        <span class="specs-val">TI ADS1292R (Gain 6)</span>
       </div>
       <div class="specs-row" style="margin-bottom:8px;">
         <span class="specs-label">Total Ictal Events:</span>
@@ -1134,121 +891,22 @@
     </div>
   </div>
 
-  <!-- Bottom Navigation Bar with Clean SVG Icons -->
+  <!-- Bottom Navigation Bar -->
   <nav class="bottom-nav">
     <div class="nav-tab active" onclick="switchNav('tab-telemetry', this)">
       <svg class="nav-svg" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-      <span>Telemetry</span>
+      <span>Raw EEG</span>
     </div>
     <div class="nav-tab" onclick="switchNav('tab-diary', this)">
       <svg class="nav-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
       <span>Diary</span>
     </div>
-    <div class="nav-tab" onclick="switchNav('tab-hardware', this)">
-      <svg class="nav-svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
-      <span>Hardware</span>
-    </div>
-    <div class="nav-tab" onclick="switchNav('tab-reports', this)">
+    <div class="nav-tab" onclick="switchNav('tab-export', this)">
       <svg class="nav-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-      <span>Reports</span>
+      <span>Export</span>
     </div>
   </nav>
 
-  <!-- Clinical Test Bench Drawer (Slide-Up) -->
-  <div class="drawer-scrim" id="drawer-scrim" onclick="toggleBenchDrawer()"></div>
-  <div class="drawer-panel" id="drawer-panel">
-    <div class="drawer-pill-bar"></div>
-    <div class="drawer-heading">Clinical Test Bench & Demonstration</div>
-    <div class="drawer-subtext">Controlled validation tools to evaluate real-time response on physical phone.</div>
-
-    <div class="bench-grid">
-      <button class="btn-bench-item trigger-ictal" onclick="triggerIctalDischarge()">
-        <span>Trigger Ictal Paroxysm</span>
-        <span>Simulate 3.2 Hz spike-wave</span>
-      </button>
-      <button class="btn-bench-item" onclick="resetBaselineRhythm()">
-        <span>Reset Baseline</span>
-        <span>Restore resting alpha continuity</span>
-      </button>
-      <button class="btn-bench-item" onclick="stampHardwareMarker()">
-        <span>SW1 Patient Marker</span>
-        <span>Simulate ear tactile event</span>
-      </button>
-      <button class="btn-bench-item" onclick="simulateLeadOff()">
-        <span>Lead-Off Disconnect</span>
-        <span>Simulate ear canal impedance loss</span>
-      </button>
-    </div>
-
-    <div style="margin-top:14px; margin-bottom:10px; font-size:11px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px;">Active Stream Source</div>
-    <div class="bench-grid" style="margin-bottom:14px;">
-      <button class="btn-bench-item" onclick="setSource('INTERNAL_SIM')">
-        <span style="color:#d8b4fe;">● Internal Simulator</span>
-        <span>Autonomous standalone mode</span>
-      </button>
-      <button class="btn-bench-item" onclick="setSource('NEO_FAKE')">
-        <span style="color:#fde047;">● neo-fake Daemon</span>
-        <span>Bridge to TCP 5001</span>
-      </button>
-      <button class="btn-bench-item" onclick="setSource('HARDWARE')">
-        <span style="color:#6ee7b7;">● Hardware (Live)</span>
-        <span>Physical ADS1292R ear-EEG</span>
-      </button>
-      <button class="btn-bench-item" onclick="setSource('AUTO')">
-        <span style="color:#00b4d8;">● Auto-Detect</span>
-        <span>Hardware > neo-fake > Sim</span>
-      </button>
-    </div>
-
-    <button class="btn-close-bench" onclick="toggleBenchDrawer()">Close Test Bench</button>
-  </div>
-
-  <!-- Clinical Data Source Switcher Modal -->
-  <div class="source-modal-scrim" id="source-modal-scrim" onclick="closeSourceModal(event)">
-    <div class="source-modal-sheet" onclick="event.stopPropagation()">
-      <div class="drawer-pill-bar"></div>
-      <h3>Select Telemetry Source</h3>
-      <p class="sheet-sub">Choose where your real-time EEG waveform data originates.</p>
-
-      <!-- Option 1: Internal Simulator -->
-      <div class="source-card active" id="card-src-sim" onclick="setSource('INTERNAL_SIM')">
-        <div class="source-card-info">
-          <h4>
-            <span style="color:#c084fc;">●</span>
-            Internal Stage Simulator
-          </h4>
-          <p>Autonomous 250 SPS synthetic model with realistic 10 Hz alpha and 3.2 Hz paroxysm triggers. Zero external dependencies.</p>
-        </div>
-        <span class="source-card-status" id="status-src-sim" style="background:rgba(168,85,247,0.15); color:#d8b4fe;">ACTIVE</span>
-      </div>
-
-      <!-- Option 2: neo-fake Bridge -->
-      <div class="source-card" id="card-src-fake" onclick="setSource('NEO_FAKE')">
-        <div class="source-card-info">
-          <h4>
-            <span style="color:#f59e0b;">●</span>
-            neo-fake Test Bench (macOS)
-          </h4>
-          <p>Streams from the official Neuravance simulated hardware daemon over TCP 5001 / UDP 5000.</p>
-        </div>
-        <span class="source-card-status" id="status-src-fake" style="background:rgba(255,255,255,0.06); color:var(--text-3);">STANDBY</span>
-      </div>
-
-      <!-- Option 3: Physical Hardware Headband -->
-      <div class="source-card" id="card-src-hw" onclick="setSource('HARDWARE')">
-        <div class="source-card-info">
-          <h4>
-            <span style="color:#10b981;">●</span>
-            Live Physical Headband (Neo v1)
-          </h4>
-          <p>ESP32-S3 + ADS1292R dual dry ear canal electrodes @ 250 SPS. Real human microvolt biosignals.</p>
-        </div>
-        <span class="source-card-status" id="status-src-hw" style="background:rgba(255,255,255,0.06); color:var(--text-3);">STANDBY</span>
-      </div>
-
-      <button class="btn-close-bench" style="margin-top:10px;" onclick="closeSourceModal()">Dismiss</button>
-    </div>
-  </div>
 
   <script>
     // In-App Toast Helper
@@ -1269,24 +927,8 @@
       el.classList.add("active");
     }
 
-    // Drawer Controls
-    function toggleBenchDrawer() {
-      document.getElementById("drawer-panel").classList.toggle("open");
-      document.getElementById("drawer-scrim").classList.toggle("open");
-    }
-
     function openReportModal() { document.getElementById("report-modal").classList.add("open"); }
     function closeReportModal() { document.getElementById("report-modal").classList.remove("open"); }
-
-    let displayMode = 'raw';
-    function setDisplayMode(mode) {
-      displayMode = mode;
-      document.getElementById('btn-raw-mode').style.background = mode === 'raw' ? 'rgba(0,180,216,0.14)' : 'transparent';
-      document.getElementById('btn-raw-mode').style.color = mode === 'raw' ? '#7dd3fc' : 'var(--text-3)';
-      document.getElementById('btn-demo-mode').style.background = mode === 'demo' ? 'rgba(168,85,247,0.14)' : 'transparent';
-      document.getElementById('btn-demo-mode').style.color = mode === 'demo' ? '#d8b4fe' : 'var(--text-3)';
-      showToast(mode === 'raw' ? 'RAW UDP mode enabled' : 'DEMO mode enabled');
-    }
 
     // Canvas Engine (60 FPS Calibrated Oscilloscope)
     const canvas = document.getElementById("eeg-canvas");
@@ -1326,17 +968,10 @@
         for (let i = 0; i < samples.length; i++) {
           const sample = samples[i];
           const channelList = Array.isArray(sample.channels) && sample.channels.length > 0 ? sample.channels : [sample.ch1, sample.ch2, sample.ch3 || sample.ch1 * 0.75, sample.ch4 || sample.ch2 * 0.80];
-          if (displayMode === 'raw' && channelList.length >= 2) {
-            bufCh1[writeIdx] = channelList[0];
-            bufCh2[writeIdx] = channelList[1];
-            bufCh3[writeIdx] = channelList[2] || channelList[0] * 0.75;
-            bufCh4[writeIdx] = channelList[3] || channelList[1] * 0.80;
-          } else {
-            bufCh1[writeIdx] = sample.ch1;
-            bufCh2[writeIdx] = sample.ch2;
-            bufCh3[writeIdx] = sample.ch3 || (sample.ch1 * 0.75);
-            bufCh4[writeIdx] = sample.ch4 || (sample.ch2 * 0.80);
-          }
+          bufCh1[writeIdx] = channelList[0] ?? sample.ch1;
+          bufCh2[writeIdx] = channelList[1] ?? sample.ch2;
+          bufCh3[writeIdx] = channelList[2] ?? (sample.ch1 * 0.75);
+          bufCh4[writeIdx] = channelList[3] ?? (sample.ch2 * 0.80);
           writeIdx = (writeIdx + 1) % MAX_SAMPLES;
         }
 
@@ -1362,60 +997,24 @@
           isAlert = false;
         }
 
-        if (data.source_meta) {
-          const m = data.source_meta;
-          const strip = document.getElementById("source-strip");
-          const pill = document.getElementById("source-pill");
-          const pillTxt = document.getElementById("source-pill-txt");
-          const titleTxt = document.getElementById("source-title-txt");
-          const descTxt = document.getElementById("source-desc-txt");
-          
-          if (pillTxt) pillTxt.textContent = m.badge;
-          if (titleTxt) titleTxt.textContent = m.label;
-          if (descTxt) descTxt.textContent = m.detail + " • Tap to switch";
+        const strip = document.getElementById("source-strip");
+        const pill = document.getElementById("source-pill");
+        const pillTxt = document.getElementById("source-pill-txt");
+        const titleTxt = document.getElementById("source-title-txt");
+        const descTxt = document.getElementById("source-desc-txt");
 
-          if (strip && pill) {
-            strip.classList.remove("source-sim", "source-fake", "source-hw");
-            pill.classList.remove("pill-sim", "pill-fake", "pill-hw");
-
-            if (m.id === "HARDWARE") {
-              strip.classList.add("source-hw");
-              pill.classList.add("pill-hw");
-            } else if (m.id === "NEO_FAKE") {
-              strip.classList.add("source-fake");
-              pill.classList.add("pill-fake");
-            } else {
-              strip.classList.add("source-sim");
-              pill.classList.add("pill-sim");
-            }
-          }
-
-          // Update active modal states
-          document.querySelectorAll(".source-card").forEach(c => c.classList.remove("active"));
-          const cardId = m.id === "HARDWARE" ? "card-src-hw" : (m.id === "NEO_FAKE" ? "card-src-fake" : "card-src-sim");
-          const card = document.getElementById(cardId);
-          if (card) card.classList.add("active");
-
-          // Update neo-fake connection status in modal
-          const fakeStatus = document.getElementById("status-src-fake");
-          if (fakeStatus) {
-            if (data.neo_fake_connected) {
-              fakeStatus.textContent = "CONNECTED (TCP 5001)";
-              fakeStatus.style.background = "rgba(245,158,11,0.2)";
-              fakeStatus.style.color = "#fde047";
-            } else {
-              fakeStatus.textContent = "STANDBY (READY)";
-              fakeStatus.style.background = "rgba(255,255,255,0.06)";
-              fakeStatus.style.color = "var(--text-3)";
-            }
-          }
-
-          const sn = document.getElementById("source-note");
-          if (sn) sn.textContent = m.detail;
-        } else if (data.source) {
-          const sn = document.getElementById("source-note");
-          if (sn) sn.textContent = data.source === "NEO_FAKE" ? "neo-fake Host Bridge" : "Stage Simulation Engine";
+        if (strip && pill && pillTxt && titleTxt && descTxt) {
+          strip.classList.remove("source-sim", "source-fake", "source-hw");
+          strip.classList.add("source-hw");
+          pill.classList.remove("pill-sim", "pill-fake", "pill-hw");
+          pill.classList.add("pill-hw");
+          pillTxt.textContent = data.connected ? "CONNECTED" : "DISCONNECTED";
+          titleTxt.textContent = data.connected ? "Raw EEG stream active" : "Awaiting device connection";
+          descTxt.textContent = data.connected ? "250 SPS live stream • raw EEG is streaming" : "250 SPS live stream • waiting for device";
         }
+
+        const sn = document.getElementById("source-note");
+        if (sn) sn.textContent = data.connected ? "Live raw UDP stream" : "Awaiting live raw stream";
       } catch (err) {}
     });
 
@@ -1545,92 +1144,6 @@
       }
     }
 
-    // Bench Actions
-    function triggerIctalDischarge() {
-      fetch("/api/trigger-seizure", { method: "POST" });
-      toggleBenchDrawer();
-      showToast("⚡ Ictal Paroxysm Injected");
-
-      totalIctalEvents++;
-      document.getElementById("stat-ictal").textContent = totalIctalEvents;
-      document.getElementById("modal-ictal-count").textContent = totalIctalEvents + " Confirmed";
-    }
-
-    function resetBaselineRhythm() {
-      fetch("/api/reset-seizure", { method: "POST" });
-      toggleBenchDrawer();
-      showToast("✓ Baseline Continuity Restored");
-    }
-
-    function stampHardwareMarker() {
-      toggleBenchDrawer();
-      markerEvents.push(writeIdx);
-      if (markerEvents.length > 8) markerEvents.shift();
-      
-      totalMarkers++;
-      document.getElementById("stat-markers").textContent = totalMarkers;
-      document.getElementById("modal-marker-count").textContent = totalMarkers + " Stamped";
-
-      const timeStr = new Date().toTimeString().split(" ")[0];
-      const list = document.getElementById("diary-list-container");
-      const card = document.createElement("div");
-      card.className = "diary-entry";
-      card.innerHTML = `
-        <div class="diary-entry-top">
-          <span class="tag tag-warn">Tactile Marker</span>
-          <span class="diary-timestamp">${timeStr}</span>
-        </div>
-        <div class="diary-heading">Hardware Push-Button Marker (SW1)</div>
-        <div class="diary-body">Patient initiated event tag from right ear module button. Correlates with subjective aura.</div>
-      `;
-      list.insertBefore(card, list.children[1] || null);
-
-      showToast("📍 SW1 Marker Stamped @ " + timeStr);
-    }
-
-    function simulateLeadOff() {
-      toggleBenchDrawer();
-      const b = document.getElementById("impedance-indicator");
-      b.innerHTML = "<span style='color:var(--status-danger);'>⚠️</span> <span style='color:var(--status-danger);'>Impedance Fault: IN1P (&gt; 50 kΩ)</span>";
-      showToast("⚠️ Lead-Off Detected on IN1P");
-      
-      setTimeout(() => {
-        b.innerHTML = "<span>●</span> Impedance: Optimal (&lt; 5 kΩ)";
-        showToast("✓ Electrode Contact Restored");
-      }, 5000);
-    }
-
-    // Telemetry Source Modal Functions
-    function openSourceModal() {
-      document.getElementById("source-modal-scrim").classList.add("open");
-    }
-    function closeSourceModal(e) {
-      if (!e || e.target.id === "source-modal-scrim" || !e.target) {
-        document.getElementById("source-modal-scrim").classList.remove("open");
-      }
-    }
-    function setSource(sourceId) {
-      fetch("/api/set-source", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: sourceId })
-      }).then(r => r.json()).then(res => {
-        const modal = document.getElementById("source-modal-scrim");
-        if (modal) modal.classList.remove("open");
-        const drawer = document.getElementById("drawer-panel");
-        const scrim = document.getElementById("drawer-scrim");
-        if (drawer && drawer.classList.contains("open")) {
-          drawer.classList.remove("open");
-          scrim.classList.remove("open");
-        }
-        if (sourceId === "INTERNAL_SIM") showToast("✓ Source: Internal Simulator (Pitch Mode)");
-        else if (sourceId === "NEO_FAKE") showToast("✓ Source: neo-fake Bridge (Port 5001)");
-        else if (sourceId === "HARDWARE") showToast("✓ Source: Live Physical Headband");
-        else showToast("✓ Source: Auto-Detect Active");
-      }).catch(err => {
-        showToast("Source mode switch requested");
-      });
-    }
   </script>
 </body>
 </html>
