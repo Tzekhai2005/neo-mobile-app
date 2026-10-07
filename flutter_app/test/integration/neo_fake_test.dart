@@ -1,6 +1,7 @@
 // End-to-end check of NeoClient against a real `neo-fake` process (loopback).
 // Needs `neo-fake` on PATH (pip package neoproto) and UDP 5000 / TCP 5001 free.
-// Not part of CI: run with `flutter test test/integration/neo_fake_test.dart`.
+// Not part of CI. Run the integration tests ONE AT A TIME (they share the ports):
+//   flutter test --concurrency=1 test/integration
 import 'dart:async';
 import 'dart:io';
 

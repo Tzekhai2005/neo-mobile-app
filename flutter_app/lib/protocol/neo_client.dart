@@ -81,6 +81,19 @@ class NeoClient {
   final StreamController<bool> _stalledCtrl = StreamController<bool>.broadcast();
   Stream<bool> get onDataStalledChanged => _stalledCtrl.stream;
 
+  /// Every decoded device packet, in arrival order: EEG, IMU, STATUS and EVENT
+  /// from the data link, LOG and ERROR from the control link.
+  final StreamController<NeoMessage> _messageCtrl = StreamController<NeoMessage>.broadcast();
+  Stream<NeoMessage> get messages => _messageCtrl.stream;
+
+  /// The device INFO, announced right after GET_INFO is ACKed and before START,
+  /// so listeners can configure scales and rates before the first sample.
+  final StreamController<NeoInfo> _infoCtrl = StreamController<NeoInfo>.broadcast();
+  Stream<NeoInfo> get onInfo => _infoCtrl.stream;
+
+  /// INFO of the connected device; null while not connected.
+  NeoInfo? info;
+
   void _setStalled(bool v) {
     if (_stalled == v) return;
     _stalled = v;
@@ -138,7 +151,16 @@ class NeoClient {
     if (!_streamArmed || senderIp != connectedDevice?.ip) return;
     _lastDataAt = DateTime.now();
     _setStalled(false);
-    if (pkt.type == NeoProto.typeEeg) _parseEegPacket(pkt);
+
+    final msg = NeoDecoder.decode(pkt);
+    if (msg == null) return; // reserved or unknown type: ignored (§2)
+    _emit(_messageCtrl, msg);
+    if (msg is NeoEegPacket) {
+      _emitEegSamples(msg);
+    } else if (msg is NeoStatus) {
+      connectedDevice?.batteryPct = msg.batteryPct;
+      connectedDevice?.batteryMv = msg.batteryMv;
+    }
   }
 
   void _setState(NeoConnState s) {
@@ -175,10 +197,14 @@ class NeoClient {
         _dropConnection("GET_INFO failed");
         return false;
       }
-      final info = NeoInfo.decode(infoReply.data);
-      if (info != null && info.uvPerCount.every((v) => v > 0)) {
-        dev.uvPerCountCh1 = info.uvPerCount[0];
-        dev.uvPerCountCh2 = info.uvPerCount[1];
+      final deviceInfo = NeoInfo.decode(infoReply.data);
+      if (deviceInfo != null) {
+        info = deviceInfo;
+        if (deviceInfo.uvPerCount.every((v) => v > 0)) {
+          dev.uvPerCountCh1 = deviceInfo.uvPerCount[0];
+          dev.uvPerCountCh2 = deviceInfo.uvPerCount[1];
+        }
+        _emit(_infoCtrl, deviceInfo);
       }
 
       // Arm data reception before START so the first packets are not lost.
@@ -243,6 +269,11 @@ class NeoClient {
       if (waiter != null && !waiter.isCompleted) waiter.complete(reply);
     } else if (pkt.type == NeoProto.typeError && pkt.payload.length >= 2) {
       _emit(_statusCtrl, "Device error 0x${pkt.payload[0].toRadixString(16)}");
+      final msg = NeoDecoder.decode(pkt);
+      if (msg != null) _emit(_messageCtrl, msg);
+    } else if (pkt.type == NeoProto.typeLog) {
+      final msg = NeoDecoder.decode(pkt);
+      if (msg != null) _emit(_messageCtrl, msg);
     }
   }
 
@@ -261,6 +292,7 @@ class NeoClient {
     final sock = _tcpSocket;
     _tcpSocket = null;
     connectedDevice = null;
+    info = null;
     for (final w in _pending.values.toList()) {
       if (!w.isCompleted) w.completeError(StateError(reason));
     }
@@ -273,42 +305,21 @@ class NeoClient {
     if (wasActive) _emit(_connectionStateCtrl, false);
   }
 
-  /// Decode an EEG packet (§5.1): n_samples | n_ch | format | reserved, then
-  /// per sample `loff u8 | ch[n_ch] i32`.
-  void _parseEegPacket(NeoPacket pkt) {
-    final payload = pkt.payload;
-    if (payload.length < 4) return;
-    final nSamples = payload[0];
-    final nCh = payload[1];
-    final format = payload[2];
-    if (format != 1 || nCh < 1 || nCh > 4) return; // unknown format: do not guess
-    final bd = ByteData.sublistView(payload);
-
+  /// One EegSample per sample in a decoded EEG packet, scaled to µV.
+  void _emitEegSamples(NeoEegPacket p) {
     final dev = connectedDevice;
     final scale = <double>[
       dev?.uvPerCountCh1 ?? 0.04808,
       dev?.uvPerCountCh2 ?? 0.04808,
     ];
-
-    final recordSize = 1 + nCh * 4;
-    var offset = 4;
-    for (var i = 0; i < nSamples; i++) {
-      if (offset + recordSize > payload.length) break;
-      final loff = payload[offset];
-      offset += 1;
-
-      final channels = <double>[];
-      for (var ch = 0; ch < nCh; ch++) {
-        final raw = bd.getInt32(offset, Endian.little);
-        offset += 4;
-        channels.add(raw * scale[ch < scale.length ? ch : scale.length - 1]);
-      }
-
+    for (var i = 0; i < p.samples.length; i++) {
+      final raw = p.samples[i].counts;
+      final channels = [for (var c = 0; c < raw.length; c++) raw[c] * scale[c < scale.length ? c : scale.length - 1]];
       _emit(
         _eegStreamCtrl,
         EegSample(
-          sampleIdx: pkt.sampleIdx + i,
-          loff: loff,
+          sampleIdx: p.indexOf(i),
+          loff: p.samples[i].loff,
           ch1Uv: channels[0],
           ch2Uv: channels.length > 1 ? channels[1] : 0.0,
           ch3Uv: channels.length > 2 ? channels[2] : 0.0,
@@ -340,5 +351,7 @@ class NeoClient {
     _statusCtrl.close();
     _connectionStateCtrl.close();
     _stalledCtrl.close();
+    _messageCtrl.close();
+    _infoCtrl.close();
   }
 }
