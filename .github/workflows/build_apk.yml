@@ -38,7 +38,7 @@ jobs:
 
       - name: Run protocol tests
         working-directory: ./flutter_app
-        run: flutter test test/protocol_test.dart test/messages_test.dart test/data_test.dart test/live_signal_buffer_test.dart
+        run: flutter test test/protocol_test.dart test/messages_test.dart test/data_test.dart test/live_signal_buffer_test.dart test/report_test.dart
 
       - name: Build Android APK
         working-directory: ./flutter_app
