@@ -39,8 +39,8 @@ void main() {
       final dev = await client.onDeviceDiscovered.first.timeout(const Duration(seconds: 6));
       expect(await client.connectAndStart(dev), isTrue);
 
-      // 1. a clean stream
-      await Future<void>.delayed(const Duration(milliseconds: 2500));
+      // 1. a clean stream: wait for 2.6 s worth of samples, however long the machine takes
+      expect(await _until(() => buffer.eegSamplesReceived >= 650, const Duration(seconds: 10)), isTrue);
       var s = buffer.snapshot(seconds: 2);
       // ignore: avoid_print
       print('channels ${buffer.channels}, eeg ${s.eeg[0].length}, imu ${s.accelX.length}, '
@@ -71,7 +71,9 @@ void main() {
       // 2. real packet loss: neo-fake skips the next 6 data packets
       fake.stdin.writeln('drop 6');
       await fake.stdin.flush();
-      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      expect(await _until(() => buffer.eegSamplesLost > 0, const Duration(seconds: 6)), isTrue,
+          reason: 'neo-fake must have dropped packets');
+      await Future<void>.delayed(const Duration(milliseconds: 600)); // let the rest of the drop land
       final lost = buffer.eegSamplesLost;
       s = buffer.snapshot(seconds: 3);
       // ignore: avoid_print
@@ -87,7 +89,8 @@ void main() {
       expect(await _until(() => client.state == NeoConnState.searching, const Duration(seconds: 6)), isTrue);
       Process.killPid(fake.pid, ProcessSignal.sigcont);
       expect(await _until(() => client.state == NeoConnState.connected, const Duration(seconds: 8)), isTrue);
-      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      // the check below reads a 1 s window (250 samples), so wait until the restarted stream has filled it
+      expect(await _until(() => buffer.latestEegIndex >= 300, const Duration(seconds: 8)), isTrue);
       // ignore: avoid_print
       print('after reconnect: latest index ${buffer.latestEegIndex}, lost ${buffer.eegSamplesLost}');
       expect(buffer.latestEegIndex, lessThan(1000), reason: 'the index restarted at 0');
