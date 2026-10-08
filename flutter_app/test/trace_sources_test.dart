@@ -42,6 +42,18 @@ void main() {
       expect(liveTicks(15).map((x) => x.label), ['−15 s', '−10 s', '−5 s', 'now']);
     });
 
+    test('looking back, the labels say how far back, and the right edge is not "now"', () {
+      final t = liveTicks(10, backSec: 20);
+      expect(t.last.label, '\u221220 s');
+      expect(t.first.label, '\u221230 s');
+      expect(t.last.important, isTrue);
+      expect(t.any((x) => x.label == 'now'), isFalse);
+    });
+
+    test('a tiny look-back still counts as now', () {
+      expect(liveTicks(10, backSec: 0.2).last.label, 'now');
+    });
+
     test('nothing to label for an empty view', () {
       expect(liveTicks(0), isEmpty);
     });

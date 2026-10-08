@@ -50,3 +50,7 @@ String sizeText(int bytes) {
   if (bytes >= 1 << 10) return '${(bytes / (1 << 10)).round()} KB';
   return '$bytes bytes';
 }
+
+/// "14:32:10", from a local time.
+String clockText(DateTime t) =>
+    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';

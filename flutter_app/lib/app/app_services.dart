@@ -11,8 +11,10 @@ import '../data/review_event.dart';
 import '../data/review_store.dart';
 import '../data/static_recording_source.dart';
 import '../device/device_status.dart';
+import '../live/activity_risk.dart';
 import '../live/live_feed.dart';
 import '../live/live_signal_buffer.dart';
+import '../live/seizure_markers.dart';
 import '../live/signal_loss.dart';
 import '../protocol/neo_client.dart';
 import '../report/report_builder.dart';
@@ -70,6 +72,21 @@ class AppServices {
         status = DeviceStatusTracker(client),
         library = dataDir == null ? null : DatasetLibrary(Directory('${dataDir.path}/datasets')) {
     _feed = LiveFeed(client, live);
+    activityRisk = kShowExperimentalRisk ? ActivityRiskMonitor(buffer: live, status: status) : null;
+  }
+
+  /// "Seizure now" markers made on the Data page; kept while the app is open.
+  final SeizureMarkerStore seizureMarkers = SeizureMarkerStore();
+
+  /// The experimental activity-risk readout; null when [kShowExperimentalRisk] is off.
+  late final ActivityRiskMonitor? activityRisk;
+
+  /// Marks the newest sample of the live stream as "Seizure now". Returns null,
+  /// and marks nothing, when no sample has arrived yet: a marker needs a place on
+  /// the signal.
+  SeizureMarker? markSeizure() {
+    if (!live.hasData) return null;
+    return seizureMarkers.add(streamId: live.streamId, sampleIdx: live.latestEegIndex, at: _now());
   }
 
   /// The recordings imported by the user; null where the platform has no app storage.
@@ -87,6 +104,7 @@ class AppServices {
     _started = true;
     // Listen before the socket opens: a HELLO can arrive immediately.
     _autoConnect = client.onDeviceDiscovered.listen((dev) => client.connectAndStart(dev));
+    activityRisk?.start();
     await client.startDiscovery();
   }
 
@@ -263,6 +281,8 @@ class AppServices {
     _disposed = true;
     await _autoConnect?.cancel();
     await _feed.dispose();
+    activityRisk?.dispose();
+    seizureMarkers.dispose();
     status.dispose();
     client.dispose();
   }

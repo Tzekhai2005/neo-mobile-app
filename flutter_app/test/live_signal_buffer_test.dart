@@ -57,6 +57,107 @@ void pushRange(LiveSignalBuffer b, int from, int to, {int per = 10, int ch = 2})
 }
 
 void main() {
+  group('looking back in time', () {
+    // 40 s of data in a 30 s buffer: indexes 0..9999, the oldest 2500 are gone.
+    LiveSignalBuffer filled() {
+      final b = fresh();
+      pushRange(b, 0, 10000);
+      return b;
+    }
+
+    test('a snapshot can end earlier than the newest sample, with that sample\'s own values', () {
+      final b = filled();
+      final s = b.snapshot(seconds: 4, endIdx: 8000);
+      expect(s.endIdx, 8000);
+      expect(s.startIdx, 8000 - 1000 + 1);
+      expect(s.eeg[0].last, eegValue(8000, 0));
+      expect(s.eeg[0].first, eegValue(7001, 0));
+      expect(s.eeg[0].any((v) => v.isNaN), isFalse);
+    });
+
+    test('without an end it is the newest, as before', () {
+      final b = filled();
+      final s = b.snapshot(seconds: 2);
+      expect(s.endIdx, 9999);
+      expect(s.eeg[0].last, eegValue(9999, 0));
+    });
+
+    test('an end beyond the newest sample is the newest', () {
+      final b = filled();
+      expect(b.snapshot(seconds: 2, endIdx: 50000).endIdx, 9999);
+    });
+
+    test('an end older than the buffer holds is moved to the oldest it holds', () {
+      final b = filled();
+      expect(b.oldestEegIndex, 9999 - 7500 + 1);
+      final s = b.snapshot(seconds: 2, endIdx: 100);
+      expect(s.endIdx, b.oldestEegIndex);
+    });
+
+    test('the part of a window older than the buffer reads as missing, never as newer data', () {
+      final b = filled();
+      // ends 1 s after the oldest held sample, so the first second of a 4 s window is gone
+      final end = b.oldestEegIndex + 250;
+      final s = b.snapshot(seconds: 4, endIdx: end);
+      expect(s.eeg[0].sublist(0, 700).every((v) => v.isNaN), isTrue, reason: 'overwritten samples must not show');
+      expect(s.eeg[0].last, eegValue(end, 0));
+      // the IMU side follows the same rule
+      expect(s.accelX.sublist(0, 100).every((v) => v.isNaN), isTrue);
+    });
+
+    test('a full 30 s window ends exactly at the oldest sample and has no gap', () {
+      final b = filled();
+      final s = b.snapshot(seconds: 30);
+      expect(s.startIdx, b.oldestEegIndex);
+      expect(s.eeg[0].any((v) => v.isNaN), isFalse);
+    });
+
+    test('nothing held yet', () {
+      final b = fresh();
+      expect(b.oldestEegIndex, -1);
+      expect(b.snapshot(seconds: 2, endIdx: 500).isEmpty, isTrue);
+    });
+  });
+
+  group('stream id', () {
+    test('is settled by the first packet and kept while the stream continues', () {
+      final b = fresh();
+      pushRange(b, 0, 10);
+      final id = b.streamId;
+      pushRange(b, 10, 2000);
+      expect(b.streamId, id);
+    });
+
+    test('changes when the stream restarts, is reset, or changes shape', () {
+      final b = fresh();
+      pushRange(b, 0, 2000);
+      var id = b.streamId;
+      b.reset();
+      expect(b.streamId, isNot(id));
+      id = b.streamId;
+      pushRange(b, 0, 100);
+      pushRange(b, 0, 100, ch: 4); // a different channel count is a different stream
+      expect(b.streamId, isNot(id));
+    });
+
+    test('an index that jumps back by more than a second is a new stream', () {
+      final b = fresh();
+      pushRange(b, 5000, 5100);
+      final id = b.streamId;
+      pushRange(b, 0, 100);
+      expect(b.streamId, isNot(id));
+    });
+
+    test('a late packet that fills a gap is not a new stream', () {
+      final b = fresh();
+      pushRange(b, 0, 10);
+      pushRange(b, 20, 30);
+      final id = b.streamId;
+      pushRange(b, 10, 20);
+      expect(b.streamId, id);
+    });
+  });
+
   group('link loss and device loss', () {
     test('a sample gap with a seq gap is link loss', () {
       final b = fresh();

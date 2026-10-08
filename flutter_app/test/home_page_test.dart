@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neo_companion/app/app_scope.dart';
 import 'package:neo_companion/app/app_services.dart';
@@ -17,6 +16,8 @@ import 'package:neo_companion/ui/home/home_page.dart';
 import 'package:neo_companion/ui/theme/app_theme.dart';
 import 'package:neo_companion/ui/widgets/brand_logo.dart';
 import 'package:neo_companion/ui/widgets/device_pill.dart';
+
+import 'helpers/test_fonts.dart';
 
 const mini = 'test/fixtures/mini_recording';
 
@@ -43,26 +44,6 @@ const _connected = DeviceStatus(
   rssiDbm: -52,
   leadOff: false,
 );
-
-/// Widget tests draw every letter as a full-width block unless a real font is
-/// loaded, which makes ordinary text overflow. Load Flutter's own Roboto.
-Future<void> loadTestFonts() async {
-  final root = Platform.environment['FLUTTER_ROOT'];
-  if (root == null) return;
-  final fonts = '$root/bin/cache/artifacts/material_fonts';
-  Future<void> load(String family, List<String> files) async {
-    final loader = FontLoader(family);
-    for (final f in files) {
-      final file = File('$fonts/$f');
-      if (!file.existsSync()) return;
-      loader.addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
-    }
-    await loader.load();
-  }
-
-  await load('Roboto', ['Roboto-Regular.ttf', 'Roboto-Medium.ttf', 'Roboto-Bold.ttf']);
-  await load('MaterialIcons', ['MaterialIcons-Regular.otf']);
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -65,13 +65,17 @@ List<TraceLane> _lanes({
 
 /// Time labels for a view that ends "now": "−10 s", "−5 s", "now". The step is
 /// 1, 2, 5, 10 or 30 seconds, whichever gives at most six labels.
-List<TraceTick> liveTicks(double durationSec) {
+///
+/// When the view looks back in time ([backSec] seconds before now) the labels say
+/// how far back each point is, and the right edge is no longer "now".
+List<TraceTick> liveTicks(double durationSec, {double backSec = 0, String nowLabel = 'now'}) {
   if (durationSec <= 0) return const [];
   final step = [1.0, 2.0, 5.0, 10.0, 30.0].firstWhere((s) => durationSec / s <= 6, orElse: () => 30.0);
+  final atNow = backSec < 0.5;
   return [
     for (var back = (durationSec / step).floor() * step; back > 0; back -= step)
-      TraceTick(durationSec - back, relativeSeconds(-back)),
-    TraceTick(durationSec, 'now', important: true),
+      TraceTick(durationSec - back, relativeSeconds(-(back + backSec))),
+    TraceTick(durationSec, atNow ? nowLabel : relativeSeconds(-backSec), important: true),
   ];
 }
 
@@ -82,6 +86,8 @@ TraceData liveTraceData(
   double eegScaleUv = kDefaultEegScaleUv,
   bool showMotion = true,
   List<TraceMarker> markers = const [],
+  double backSec = 0,
+  String nowLabel = 'now',
 }) {
   if (s.isEmpty || s.eeg.isEmpty) return const TraceData(lanes: [], durationSec: 0);
   final duration = s.durationSec;
@@ -101,7 +107,7 @@ TraceData liveTraceData(
     ),
     durationSec: duration,
     markers: markers,
-    ticks: liveTicks(duration),
+    ticks: liveTicks(duration, backSec: backSec, nowLabel: nowLabel),
   );
 }
 

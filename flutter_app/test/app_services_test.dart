@@ -10,7 +10,10 @@ import 'package:neo_companion/data/dataset.dart';
 import 'package:neo_companion/data/dataset_library.dart';
 import 'package:neo_companion/data/dataset_picker.dart';
 import 'package:neo_companion/data/dataset_readers.dart';
+import 'package:neo_companion/config/app_config.dart';
 import 'package:neo_companion/data/review_event.dart';
+import 'package:neo_companion/live/activity_risk.dart';
+import 'package:neo_companion/protocol/neo_messages.dart';
 import 'package:neo_companion/protocol/neo_client.dart';
 import 'package:neo_companion/report/report_exporter.dart';
 import 'package:neo_companion/report/report_models.dart';
@@ -181,6 +184,70 @@ void main() {
         [out.pdf.path, out.csvZip.path]
       ]);
     });
+  });
+
+  group('"Seizure now" markers', () {
+    NeoEegPacket eegAt(int idx, int n) => NeoEegPacket(
+          NeoHeader(sampleIdx: idx),
+          2,
+          1,
+          [for (var k = 0; k < n; k++) NeoEegSample(0, [idx + k, 0])],
+        );
+
+    test('with no signal yet, nothing is marked', () {
+      final s = services();
+      expect(s.markSeizure(), isNull);
+      expect(s.seizureMarkers.count, 0);
+    });
+
+    test('a marker sits on the newest sample, in the stream it was made in, at the time the app gave it', () {
+      final s = services();
+      s.live.pushEeg(eegAt(0, 500));
+      final m = s.markSeizure()!;
+      expect(m.sampleIdx, 499);
+      expect(m.streamId, s.live.streamId);
+      expect(m.at, fixedNow);
+      expect(s.seizureMarkers.markers.single, m);
+    });
+
+    test('markers are kept in order, with their own ids, and tell listeners', () {
+      final s = services();
+      s.live.pushEeg(eegAt(0, 500));
+      var told = 0;
+      s.seizureMarkers.addListener(() => told++);
+      final a = s.markSeizure()!;
+      s.live.pushEeg(eegAt(500, 500));
+      final b = s.markSeizure()!;
+      expect(a.id, isNot(b.id));
+      expect([for (final m in s.seizureMarkers.markers) m.sampleIdx], [499, 999]);
+      expect(told, 2);
+    });
+
+    test('a marker remembers which stream it belongs to when the stream restarts', () {
+      final s = services();
+      s.live.pushEeg(eegAt(0, 500));
+      final before = s.markSeizure()!;
+      s.live.reset();
+      s.live.pushEeg(eegAt(0, 300));
+      final after = s.markSeizure()!;
+      expect(after.streamId, isNot(before.streamId));
+      expect(s.seizureMarkers.count, 2, reason: 'the first is kept, but belongs to the old stream');
+    });
+
+    test('clearing removes them all', () {
+      final s = services();
+      s.live.pushEeg(eegAt(0, 500));
+      s.markSeizure();
+      s.seizureMarkers.clear();
+      expect(s.seizureMarkers.count, 0);
+    });
+  });
+
+  test('the experimental readout exists while its switch is on', () {
+    final s = services();
+    expect(kShowExperimentalRisk, isTrue);
+    expect(s.activityRisk, isNotNull);
+    expect(s.activityRisk!.value.state, RiskState.noData);
   });
 
   test('without app storage, review and report say so plainly', () async {

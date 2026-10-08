@@ -56,6 +56,38 @@ view look and behave the same. It holds no state: it draws a `TraceData` it is g
 * EEG scales are 25, 50, 100, 200, 500 and 1000 µV from the middle of a lane to its edge;
   the motion scales are fixed (accelerometer ±2 g, gyro ±250 °/s).
 
+## The Data page (`ui/data/`)
+
+The live view, built on the signal view above. `DataViewController` turns the live buffer
+into what is drawn a few times a second: the window (5, 10 or 15 s), the EEG scale (25 to
+1000 µV), whether the motion lanes are open, and which lane is expanded.
+
+* **Pause and look back.** Pausing freezes the view at that moment; dragging sideways then
+  moves back through the 30 s the buffer holds, and the time labels say how far back. If
+  the sample index starts over (a restart), the pause ends, because the frozen view would
+  no longer mean anything. The buffer never returns overwritten samples for an old window:
+  anything older than it holds reads as missing.
+* **Landscape.** The Data tab may be turned; every other page stays upright. In landscape
+  the device strip and the tabs give way to the lanes, with the controls in a thin bar and
+  the readout beside the lanes, never over a trace. Tapping a lane expands it alone, in
+  landscape; the cross brings it back.
+* **Markers.** A device button press is drawn as "button". "Seizure now" marks the newest
+  sample, together with the stream it belongs to (an index starts over on every restart, so
+  a marker from an earlier stream is never drawn at a place that now means something else).
+  These markers live in memory while the app is open; they are not saved and do not reach
+  the Review page.
+* **Experimental activity risk** (`live/activity_risk.dart`). A demonstration, **not a
+  validated detector**. Once a second it measures how busy the EEG is (the mean step from one
+  sample to the next, after the slow baseline is removed) and compares it with the wearer's own
+  median over the last five minutes; that ratio becomes a number from 6 to 98 and is smoothed
+  over about three seconds. It shows nothing while it learns the baseline (20 s), and nothing
+  with a poor electrode contact or without data. While the wearer is moving (the
+  accelerometer or gyro varies) the number is eased down and the baseline is not updated, so
+  movement does not teach it that busy is normal. A real change in the signal, a loose
+  electrode or a muscle artefact can all raise it. It has no alarm and never raises an event.
+  `kShowExperimentalRisk` removes the whole readout, and an empty `kRiskExperimentalNote`
+  hides only the small print.
+
 ## One owner: `AppServices`
 
 `AppServices` (`lib/app/app_services.dart`) is created once in `main()` and lives as long

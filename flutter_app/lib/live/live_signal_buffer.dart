@@ -65,6 +65,7 @@ class LiveSignalBuffer {
   late List<Float32List> _imu;
 
   int _channels = 0;
+  int _streamId = 0;
   int _latestEeg = -1;
   int _latestImu = -1;
   int _eegReceived = 0;
@@ -111,6 +112,7 @@ class LiveSignalBuffer {
   static Float32List _nanList(int n) => Float32List(n)..fillRange(0, n, double.nan);
 
   void _resetCounters() {
+    _streamId++;
     _channels = 0;
     _latestEeg = -1;
     _latestImu = -1;
@@ -134,6 +136,14 @@ class LiveSignalBuffer {
   // ── status ──────────────────────────────────────────────────────────────────
 
   bool get hasData => _latestEeg >= 0;
+
+  /// Changes whenever the sample index starts over (a new stream, a restart, a
+  /// different channel count). A sample index only means something together with
+  /// the stream id it was read under.
+  int get streamId => _streamId;
+
+  /// The oldest EEG sample index still held, or -1 before any data.
+  int get oldestEegIndex => _latestEeg < 0 ? -1 : math.max(0, _latestEeg - _eegCap + 1);
 
   /// Channels in the current stream (2–4); 0 before the first packet.
   int get channels => _channels;
@@ -287,9 +297,12 @@ class LiveSignalBuffer {
 
   // ── reading ─────────────────────────────────────────────────────────────────
 
-  /// The newest `seconds` (at most [maxWindowSec]) of every signal, copied so a
-  /// graph can keep it (pause) while new data keeps arriving.
-  LiveSnapshot snapshot({double seconds = 10}) {
+  /// `seconds` (at most [maxWindowSec]) of every signal, copied so a graph can
+  /// keep it (pause) while new data keeps arriving. It ends at the newest sample,
+  /// or at EEG sample index [endIdx] to look back in time; an end beyond what is
+  /// held is moved to the nearest one that is, and any part of the window older
+  /// than the buffer holds reads as missing, never as someone else's data.
+  LiveSnapshot snapshot({double seconds = 10, int? endIdx}) {
     if (_latestEeg < 0) {
       return LiveSnapshot(
         startIdx: 0,
@@ -307,15 +320,16 @@ class LiveSignalBuffer {
     }
     final secs = seconds.clamp(0.1, maxWindowSec.toDouble());
     final n = (secs * _eegRate).round();
-    final endIdx = _latestEeg;
-    final startIdx = endIdx - n + 1;
+    final end = (endIdx ?? _latestEeg).clamp(math.min(oldestEegIndex, _latestEeg), _latestEeg).toInt();
+    final startIdx = end - n + 1;
+    final oldestEeg = _latestEeg - _eegCap; // indexes at or below this have been overwritten
 
     final eeg = <Float32List>[];
     for (var c = 0; c < _channels; c++) {
       final out = Float32List(n);
       for (var i = 0; i < n; i++) {
         final idx = startIdx + i;
-        out[i] = idx < 0 ? double.nan : _eeg[c][idx % _eegCap];
+        out[i] = (idx < 0 || idx <= oldestEeg) ? double.nan : _eeg[c][idx % _eegCap];
       }
       eeg.add(out);
     }
@@ -323,18 +337,19 @@ class LiveSignalBuffer {
     // The same time span on the IMU clock, aligned on the window's left edge.
     final nImu = (secs * _imuRate).round();
     final startImu = (startIdx * _imuRate / _eegRate).round();
+    final oldestImu = _latestImu - _imuCap;
     Float32List imu(int axis) {
       final out = Float32List(nImu);
       for (var i = 0; i < nImu; i++) {
         final idx = startImu + i;
-        out[i] = (idx < 0 || idx > _latestImu) ? double.nan : _imu[axis][idx % _imuCap];
+        out[i] = (idx < 0 || idx > _latestImu || idx <= oldestImu) ? double.nan : _imu[axis][idx % _imuCap];
       }
       return out;
     }
 
     return LiveSnapshot(
       startIdx: startIdx,
-      endIdx: endIdx,
+      endIdx: end,
       eegRateHz: _eegRate,
       imuRateHz: _imuRate,
       eeg: eeg,
