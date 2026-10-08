@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../app/app_scope.dart';
@@ -74,8 +73,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   int _batteryPct = 92;
   bool _leadOff = false;
   double _uvScale = 50.0;
-  bool _isDual = false;
-  int _currentTab = 0;
   int _lastChannelCount = 2;
   Timer? _durationTimer;
   Timer? _discoveryTimeoutTimer;
@@ -239,9 +236,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     ));
   }
 
-  String _fmt(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2,'0')}:${t.minute.toString().padLeft(2,'0')}';
-
   @override
   void dispose() {
     _durationTimer?.cancel();
@@ -328,9 +322,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: col.withOpacity(0.12),
+        color: col.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: col.withOpacity(0.4)),
+        border: Border.all(color: col.withValues(alpha: 0.4)),
       ),
       child: Row(children: [
         Container(width: 6, height: 6, decoration: BoxDecoration(
@@ -369,17 +363,17 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: col.withOpacity(0.08),
+        color: col.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: col.withOpacity(0.35)),
+        border: Border.all(color: col.withValues(alpha: 0.35)),
       ),
       child: Row(children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
           decoration: BoxDecoration(
-            color: col.withOpacity(0.2),
+            color: col.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: col.withOpacity(0.4)),
+            border: Border.all(color: col.withValues(alpha: 0.4)),
           ),
           child: Text(
             connected ? (_noData ? 'NO DATA' : 'CONNECTED') : 'DISCONNECTED',
@@ -395,9 +389,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
       duration: const Duration(milliseconds: 250),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: _seizureActive ? kRed.withOpacity(0.1) : kGreen.withOpacity(0.08),
+        color: _seizureActive ? kRed.withValues(alpha: 0.1) : kGreen.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _seizureActive ? kRed.withOpacity(0.5) : kGreen.withOpacity(0.3)),
+        border: Border.all(color: _seizureActive ? kRed.withValues(alpha: 0.5) : kGreen.withValues(alpha: 0.3)),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -560,55 +554,6 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     );
   }
 
-  // ── Hardware tab ───────────────────────────────────────────────────────────
-  Widget _buildHardwareTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Text('Silicon Architecture',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kText1)),
-        const SizedBox(height: 14),
-        _SpecGroup(title: 'Processing Unit', items: const [
-          ['MCU', 'ESP32-S3 (Xtensa LX7 @ 240 MHz)'],
-          ['RAM', '512 KB SRAM + 8 MB PSRAM'],
-          ['Flash', '16 MB Quad-SPI NOR'],
-          ['Connectivity', 'Wi-Fi 802.11 b/g/n + BLE 5.0'],
-        ]),
-        const SizedBox(height: 14),
-        _SpecGroup(title: 'Biopotential Frontend', items: const [
-          ['AFE', 'ADS1292R (Texas Instruments)'],
-          ['Resolution', '24-bit delta-sigma ADC'],
-          ['Sampling Rate', '250 SPS (configurable to 500 SPS)'],
-          ['Gain', '6× (configurable)'],
-          ['Input Noise', '4 µVpp (0.5–40 Hz BPF)'],
-          ['CMRR', '> 80 dB'],
-        ]),
-        const SizedBox(height: 14),
-        _SpecGroup(title: 'Motion & Inertial', items: const [
-          ['IMU', 'ICM-42670-P (InvenSense)'],
-          ['Gyroscope', '±2000 dps, 16-bit'],
-          ['Accelerometer', '±16 g, 16-bit'],
-          ['IMU Rate', '100 Hz'],
-        ]),
-        const SizedBox(height: 14),
-        _SpecGroup(title: 'Power Management', items: const [
-          ['PMIC', 'BQ25180 (TI) — USB-C charge path'],
-          ['Battery', '120 mAh LiPo (ear-worn form)'],
-          ['Runtime', '~12 h continuous recording'],
-        ]),
-        if (_device != null) ...[
-          const SizedBox(height: 14),
-          _SpecGroup(title: 'Connected Device', items: [
-            ['Device Name', _device!.name],
-            ['IP Address', _device!.ip],
-            ['Control Port', '${_device!.ctrlPort}'],
-            ['Battery', '${_device!.batteryPct}%'],
-          ]),
-        ],
-      ]),
-    );
-  }
-
   void _showReport() {
     showModalBottomSheet(
       context: context,
@@ -638,9 +583,9 @@ class _StandaloneScreenState extends State<StandaloneScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: kGreen.withOpacity(0.12),
+                decoration: BoxDecoration(color: kGreen.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kGreen.withOpacity(0.4))),
+                    border: Border.all(color: kGreen.withValues(alpha: 0.4))),
                 child: const Text('Export / Share PDF',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kGreen)),
               ),
@@ -711,9 +656,9 @@ class _CtrlBtn extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: active ? kCh1.withOpacity(0.15) : kSurface2,
+        color: active ? kCh1.withValues(alpha: 0.15) : kSurface2,
         borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: active ? kCh1.withOpacity(0.4) : kBorder),
+        border: Border.all(color: active ? kCh1.withValues(alpha: 0.4) : kBorder),
       ),
       child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
           color: active ? kCh1 : kText2)),
@@ -783,13 +728,6 @@ class _SpecGroup extends StatelessWidget {
   ]);
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-  @override
-  Widget build(BuildContext ctx) => Text(text,
-      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kText3, letterSpacing: 0.8));
-}
 
 class _BenchBtn extends StatelessWidget {
   final String label, sub; final Color color; final VoidCallback onTap;
@@ -800,8 +738,8 @@ class _BenchBtn extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
@@ -830,15 +768,15 @@ class _DiaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isIctal ? kRed.withOpacity(0.06) : kSurface1,
+        color: isIctal ? kRed.withValues(alpha: 0.06) : kSurface1,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isIctal ? kRed.withOpacity(0.35) : kBorder),
+        border: Border.all(color: isIctal ? kRed.withValues(alpha: 0.35) : kBorder),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(color: tagColor.withOpacity(0.15), borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: tagColor.withOpacity(0.4))),
+            decoration: BoxDecoration(color: tagColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: tagColor.withValues(alpha: 0.4))),
             child: Text(tagLabel, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: tagColor))),
           Text(ts, style: const TextStyle(fontSize: 11, color: kText3, fontFamily: 'monospace')),
         ]),

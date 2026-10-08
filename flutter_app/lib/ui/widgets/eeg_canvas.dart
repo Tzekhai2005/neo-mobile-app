@@ -114,7 +114,7 @@ class _EegPainter extends CustomPainter {
 
     // Glow effect
     final glowPaint = Paint()
-      ..color = color.withOpacity(isSeizure ? 0.6 : 0.25)
+      ..color = color.withValues(alpha: isSeizure ? 0.6 : 0.25)
       ..strokeWidth = isSeizure ? 4.5 : 3.0
       ..style = PaintingStyle.stroke
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, isSeizure ? 6.0 : 3.0);
