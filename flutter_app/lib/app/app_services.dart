@@ -13,6 +13,7 @@ import '../data/static_recording_source.dart';
 import '../device/device_status.dart';
 import '../live/live_feed.dart';
 import '../live/live_signal_buffer.dart';
+import '../live/signal_loss.dart';
 import '../protocol/neo_client.dart';
 import '../report/report_builder.dart';
 import '../report/report_exporter.dart';
@@ -152,6 +153,9 @@ class AppServices {
 
   /// The imported recording in use; null means the bundled demo. Call [loadReview] first.
   String? get currentDataset => _currentDataset;
+
+  /// Loss of the current live stream, split into link and device (a snapshot).
+  SignalLoss get loss => SignalLoss.read(client: client, buffer: live, status: status.value);
 
   Future<List<DatasetSummary>> listDatasets() async => _library.list();
 

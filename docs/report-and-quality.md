@@ -120,18 +120,37 @@ simulator `neo-fake` has a `drop N` cue that builds N packets and then does not 
 them. That simulates a lost network packet so the counting can be tested; the counting
 itself is the same for real hardware.)
 
-### What the count can and cannot tell apart
+### Link loss and device loss, told apart
 
 The protocol (README section 3) says: a gap in the sample index means samples were lost
 **on the device** (its buffer overran), and a gap in the packet counter `seq` means
 packets were lost **on the network link**. A lost network packet leaves both gaps; a
 device overrun leaves only the index gap.
 
-The app currently counts index gaps only, so its number means **"samples missing, for
-any reason"**. It does not yet separate Wi-Fi loss from device-side loss. Separating them
-needs two more inputs the app already receives but does not use for this: the `seq`
-counter in each packet header, and the device's own `eeg_overruns` and `pkts_dropped`
-counters in its once-a-second STATUS packet (shown today in `DeviceStatus`).
+The app uses both:
+
+* `NeoClient` follows `seq` on every UDP data packet (`SeqTracker`, restarted at each
+  START) and tags each packet with how many packets went missing just before it. The
+  total is `linkPacketsLost`, and it is exact.
+* `LiveSignalBuffer` sorts each missing-sample gap by cause. Samples missing **with** a
+  `seq` gap are link loss (`eegSamplesLostLink`); samples missing **with no** `seq` gap
+  are device loss (`eegSamplesLostDevice`). The same holds for the IMU. The first packet
+  after a loss is often a STATUS or IMU packet, not the next EEG one, so the buffer
+  carries the `seq` gap forward until the next EEG packet.
+* `SignalLoss` (`AppServices.loss`) gathers all of it in one place, with percentages
+  that are `null` (not 0) before anything was expected. It also carries the device's own
+  `pkts_dropped` and `eeg_overruns` from STATUS, which are totals since boot and so are
+  not comparable with the per-stream counts.
+
+The split is an **estimate**, with one known limit: `seq` counts packets of every type,
+so when a gap exists the buffer cannot know whether the lost packets were EEG. It assumes
+they could have been and caps the link share at the number of missing samples; whatever
+is left is device loss. If only IMU packets are lost, no EEG sample is missing and
+nothing is counted as EEG link loss. The exact numbers are `linkPacketsLost` (packets)
+and the sample counts in total (`eegSamplesLost`).
+
+`neo-fake`'s `drop N` spends a `seq` number on each dropped packet, so it exercises link
+loss. It has no cue for a device-side overrun, so device loss is covered by unit tests.
 
 ### Lead-off
 
@@ -143,7 +162,7 @@ session recorder to accumulate it, which does not exist yet.
 ### To get these numbers into a report
 
 1. Add a recorder that stores a live session in the recording format.
-2. Accumulate the missing-sample count, `seq` gaps and lead-off time during the session.
+2. Accumulate `SignalLoss` (link and device loss) and lead-off time during the session.
 3. Write them into the manifest as optional fields, and let the report read them.
 
 An imported real recording could carry the same optional fields if its converter wrote

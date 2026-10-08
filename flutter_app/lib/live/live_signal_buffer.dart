@@ -68,10 +68,18 @@ class LiveSignalBuffer {
   int _latestEeg = -1;
   int _latestImu = -1;
   int _eegReceived = 0;
-  int _eegLost = 0;
+  int _eegLostLink = 0;
+  int _eegLostDevice = 0;
   int _imuReceived = 0;
-  int _imuLost = 0;
+  int _imuLostLink = 0;
+  int _imuLostDevice = 0;
   int _leadOffMask = 0;
+
+  // Packets lost on the link that no EEG (or IMU) packet has accounted for yet.
+  // A `seq` gap shows up on whatever packet arrives first after the loss, which
+  // is often not the next EEG packet.
+  int _linkPendingEeg = 0;
+  int _linkPendingImu = 0;
 
   LiveSignalBuffer({this.maxWindowSec = 30}) {
     _allocate();
@@ -106,8 +114,10 @@ class LiveSignalBuffer {
     _channels = 0;
     _latestEeg = -1;
     _latestImu = -1;
-    _eegReceived = _eegLost = _imuReceived = _imuLost = 0;
+    _eegReceived = _eegLostLink = _eegLostDevice = 0;
+    _imuReceived = _imuLostLink = _imuLostDevice = 0;
     _leadOffMask = 0;
+    _linkPendingEeg = _linkPendingImu = 0;
   }
 
   /// Forget everything (a new stream starts at index 0).
@@ -132,9 +142,24 @@ class LiveSignalBuffer {
   int get latestEegIndex => _latestEeg;
 
   int get eegSamplesReceived => _eegReceived;
-  int get eegSamplesLost => _eegLost;
+  /// All EEG samples missing from the stream: [eegSamplesLostLink] plus
+  /// [eegSamplesLostDevice].
+  int get eegSamplesLost => _eegLostLink + _eegLostDevice;
+
+  /// Missing EEG samples that went with packets lost on the Wi-Fi link (a `seq`
+  /// gap, README §2). An estimate: it assumes every lost packet was an EEG
+  /// packet of the same size as the one after the gap, so it can overcount when
+  /// IMU or STATUS packets were the ones lost; the rest is counted as device loss.
+  int get eegSamplesLostLink => _eegLostLink;
+
+  /// Missing EEG samples with no `seq` gap, so the device never sent them (ring
+  /// overrun, bad ADC frames; README §3).
+  int get eegSamplesLostDevice => _eegLostDevice;
+
   int get imuSamplesReceived => _imuReceived;
-  int get imuSamplesLost => _imuLost;
+  int get imuSamplesLost => _imuLostLink + _imuLostDevice;
+  int get imuSamplesLostLink => _imuLostLink;
+  int get imuSamplesLostDevice => _imuLostDevice;
 
   /// ADS1292R lead-off bits of the newest sample (bit 0–3 electrodes, 4 RLD).
   int get leadOffMask => _leadOffMask;
@@ -142,9 +167,19 @@ class LiveSignalBuffer {
 
   // ── writing ─────────────────────────────────────────────────────────────────
 
+  /// Tell the buffer that [packets] data packets went missing on the link right
+  /// before a packet that is not EEG or IMU (STATUS, EVENT). The EEG and IMU
+  /// writers read their own packets' gaps from the header.
+  void noteLinkGap(int packets) {
+    if (packets <= 0) return;
+    _linkPendingEeg += packets;
+    _linkPendingImu += packets;
+  }
+
   void pushEeg(NeoEegPacket p) {
     final n = p.samples.length;
     if (n == 0) return;
+    noteLinkGap(p.header.linkGap);
     if (p.channels != _channels) {
       reset(); // a different channel count is a different stream
       _channels = p.channels;
@@ -157,7 +192,9 @@ class LiveSignalBuffer {
       _latestEeg = start - 1; // first packet: nothing before it counts as lost
     } else if (start > _latestEeg + 1) {
       final gap = start - _latestEeg - 1;
-      _eegLost += gap;
+      final link = math.min(gap, _linkPendingEeg * n);
+      _eegLostLink += link;
+      _eegLostDevice += gap - link;
       for (var i = math.max(_latestEeg + 1, start - _eegCap); i < start; i++) {
         for (var c = 0; c < maxChannels; c++) {
           _eeg[c][i % _eegCap] = double.nan;
@@ -176,16 +213,26 @@ class LiveSignalBuffer {
       }
       if (fresh) {
         _eegReceived++;
-        if (idx <= _latestEeg) _eegLost--; // a late packet filled a counted gap
+        if (idx <= _latestEeg) {
+          // A late packet filled a counted gap. Reordering is a link effect, so
+          // take it back from the link count first.
+          if (_eegLostLink > 0) {
+            _eegLostLink--;
+          } else {
+            _eegLostDevice--;
+          }
+        }
       }
     }
     _latestEeg = math.max(_latestEeg, start + n - 1);
+    _linkPendingEeg = 0;
     _leadOffMask = p.samples.last.loff;
   }
 
   void pushImu(NeoImuPacket p) {
     final n = p.samples.length;
     if (n == 0) return;
+    noteLinkGap(p.header.linkGap);
     // The header carries the EEG index of the first IMU sample (README §3).
     final start = (p.header.sampleIdx * _imuRate / _eegRate).round();
     if (_latestImu >= 0 && start + n - 1 < _latestImu - _imuRate) {
@@ -194,13 +241,16 @@ class LiveSignalBuffer {
         r.fillRange(0, r.length, double.nan);
       }
       _latestImu = -1;
-      _imuReceived = _imuLost = 0;
+      _imuReceived = _imuLostLink = _imuLostDevice = 0;
     }
 
     if (_latestImu < 0) {
       _latestImu = start - 1;
     } else if (start > _latestImu + 1) {
-      _imuLost += start - _latestImu - 1;
+      final gap = start - _latestImu - 1;
+      final link = math.min(gap, _linkPendingImu * n);
+      _imuLostLink += link;
+      _imuLostDevice += gap - link;
       for (var i = math.max(_latestImu + 1, start - _imuCap); i < start; i++) {
         for (var a = 0; a < imuAxes; a++) {
           _imu[a][i % _imuCap] = double.nan;
@@ -222,10 +272,17 @@ class LiveSignalBuffer {
       _imu[5][pos] = s.gz * _dpsPerLsb;
       if (fresh) {
         _imuReceived++;
-        if (idx <= _latestImu) _imuLost--;
+        if (idx <= _latestImu) {
+          if (_imuLostLink > 0) {
+            _imuLostLink--;
+          } else {
+            _imuLostDevice--;
+          }
+        }
       }
     }
     _latestImu = math.max(_latestImu, start + n - 1);
+    _linkPendingImu = 0;
   }
 
   // ── reading ─────────────────────────────────────────────────────────────────

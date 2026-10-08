@@ -25,6 +25,8 @@ class LiveFeed {
       buffer.pushImu(m);
     } else if (m is NeoEvent && m.kind == NeoEventKind.syncRestart) {
       buffer.reset(); // the sample index starts over at 0 (§3)
+    } else {
+      buffer.noteLinkGap(m.header.linkGap);
     }
   }
 

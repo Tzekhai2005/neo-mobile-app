@@ -82,6 +82,11 @@ class NeoClient implements DeviceEventSource {
 
   int _cmdSeq = 1;
   bool _streamArmed = false; // accept data packets from the device
+  final SeqTracker _dataSeq = SeqTracker();
+
+  /// UDP data packets lost on the link since the last START, from `seq` gaps.
+  int get linkPacketsLost => _dataSeq.lost;
+  int get linkPacketsReceived => _dataSeq.received;
   bool _stalled = false;
   DateTime _lastDataAt = DateTime.now();
   Timer? _watchdog;
@@ -179,6 +184,7 @@ class NeoClient implements DeviceEventSource {
     if (!_streamArmed || senderIp != connectedDevice?.ip) return;
     _lastDataAt = DateTime.now();
     _setStalled(false);
+    pkt.linkGap = _dataSeq.update(pkt.seq);
 
     final msg = NeoDecoder.decode(pkt);
     if (msg == null) return; // reserved or unknown type: ignored (§2)
@@ -239,6 +245,7 @@ class NeoClient implements DeviceEventSource {
 
       // Arm data reception before START so the first packets are not lost.
       _lastDataAt = DateTime.now();
+      _dataSeq.reset(); // the device restarts its data `seq` at 0 on START
       _streamArmed = true;
 
       // START: udp_port = 5000, streams = 0x07 (EEG + IMU + STATUS)

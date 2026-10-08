@@ -32,8 +32,8 @@ NeoInfo info({int eegRate = 250, int imuRate = 100}) => NeoInfo(
       podPresent: 0,
     );
 
-NeoEegPacket eeg(int idx, int n, {int ch = 2, int loff = 0}) => NeoEegPacket(
-      NeoHeader(sampleIdx: idx),
+NeoEegPacket eeg(int idx, int n, {int ch = 2, int loff = 0, int linkGap = 0}) => NeoEegPacket(
+      NeoHeader(sampleIdx: idx, linkGap: linkGap),
       ch,
       1,
       [
@@ -43,8 +43,8 @@ NeoEegPacket eeg(int idx, int n, {int ch = 2, int loff = 0}) => NeoEegPacket(
 
 /// IMU packet whose first sample sits at EEG index `eegIdx`; sample k has IMU index
 /// `imuStart + k`, encoded in ax (×0.001 g), ay (negated) and gx (×0.1 °/s).
-NeoImuPacket imu(int eegIdx, int imuStart, {int n = 10}) => NeoImuPacket(
-      NeoHeader(sampleIdx: eegIdx),
+NeoImuPacket imu(int eegIdx, int imuStart, {int n = 10, int linkGap = 0}) => NeoImuPacket(
+      NeoHeader(sampleIdx: eegIdx, linkGap: linkGap),
       [for (var k = 0; k < n; k++) NeoImuSample((imuStart + k), -(imuStart + k), 1000, (imuStart + k) * 10, 0, 0)],
     );
 
@@ -57,6 +57,93 @@ void pushRange(LiveSignalBuffer b, int from, int to, {int per = 10, int ch = 2})
 }
 
 void main() {
+  group('link loss and device loss', () {
+    test('a sample gap with a seq gap is link loss', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushEeg(eeg(30, 10, linkGap: 2)); // two 10-sample packets missing on the link
+      expect(b.eegSamplesLostLink, 20);
+      expect(b.eegSamplesLostDevice, 0);
+      expect(b.eegSamplesLost, 20);
+    });
+
+    test('a sample gap with no seq gap is device loss', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushEeg(eeg(30, 10)); // seq contiguous, but the index jumped: the device never sent them
+      expect(b.eegSamplesLostLink, 0);
+      expect(b.eegSamplesLostDevice, 20);
+    });
+
+    test('a seq gap that covers only part of the sample gap leaves the rest as device loss', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushEeg(eeg(40, 10, linkGap: 1)); // 30 samples missing, one packet (10) lost on the link
+      expect(b.eegSamplesLostLink, 10);
+      expect(b.eegSamplesLostDevice, 20);
+    });
+
+    test('lost IMU or STATUS packets cannot make link loss exceed the gap', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushEeg(eeg(10, 10, linkGap: 5)); // five packets lost, but none of them EEG: no sample gap
+      expect(b.eegSamplesLost, 0);
+      expect(b.eegSamplesLostLink, 0);
+    });
+
+    test('a late packet is taken back from the link count first', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushEeg(eeg(40, 10, linkGap: 1)); // link 10, device 20
+      b.pushEeg(eeg(10, 10)); // arrives late
+      expect(b.eegSamplesLostLink, 0);
+      expect(b.eegSamplesLostDevice, 20);
+      b.pushEeg(eeg(20, 10));
+      expect(b.eegSamplesLostDevice, 10);
+      expect(b.eegSamplesLost, 10);
+    });
+
+    test('IMU loss is split the same way', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushImu(imu(0, 0));
+      b.pushImu(imu(50, 20, linkGap: 1)); // IMU samples 10..19 missing, one packet lost
+      expect(b.imuSamplesLostLink, 10);
+      expect(b.imuSamplesLostDevice, 0);
+      b.pushImu(imu(150, 60)); // 30 more missing, seq contiguous
+      expect(b.imuSamplesLostDevice, 30);
+    });
+
+    test('a seq gap seen on a STATUS or IMU packet still explains the EEG gap after it', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.noteLinkGap(1); // the packet after the loss was a STATUS
+      b.pushEeg(eeg(20, 10)); // contiguous seq, but 10 samples are missing
+      expect(b.eegSamplesLostLink, 10);
+      expect(b.eegSamplesLostDevice, 0);
+      b.pushEeg(eeg(30, 10)); // the pending gap was used up
+      b.pushEeg(eeg(50, 10));
+      expect(b.eegSamplesLostDevice, 10);
+    });
+
+    test('an IMU packet\'s own gap also counts for the EEG that follows', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushImu(imu(0, 0, linkGap: 1));
+      b.pushEeg(eeg(20, 10));
+      expect(b.eegSamplesLostLink, 10);
+    });
+
+    test('reset clears both counters', () {
+      final b = fresh();
+      b.pushEeg(eeg(0, 10));
+      b.pushEeg(eeg(40, 10, linkGap: 1));
+      b.reset();
+      expect(b.eegSamplesLostLink, 0);
+      expect(b.eegSamplesLostDevice, 0);
+    });
+  });
+
   group('EEG', () {
     test('an empty buffer has an empty snapshot', () {
       final b = fresh();

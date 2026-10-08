@@ -151,6 +151,11 @@ class NeoPacket {
   final int tUs;
   final Uint8List payload;
 
+  /// Packets missing on the UDP data link right before this one, from the `seq`
+  /// numbers (§2). Set by the receiver; 0 for control packets and for the
+  /// first packet of a stream.
+  int linkGap = 0;
+
   NeoPacket({
     required this.type,
     required this.module,
@@ -197,5 +202,38 @@ class NeoDeframer {
     }
     _buf = Uint8List.fromList(merged.sublist(pos));
     return out;
+  }
+}
+
+/// Counts packets lost on a link from `seq` gaps (README §2). `seq` wraps at
+/// 2^32; a packet that arrives late or twice is not counted as a loss.
+class SeqTracker {
+  int? _last;
+  int lost = 0;
+  int received = 0;
+
+  /// Feed the next packet's `seq`; returns how many packets went missing just
+  /// before it.
+  int update(int seq) {
+    var gap = 0;
+    final last = _last;
+    if (last != null) {
+      gap = (seq - last - 1) & 0xFFFFFFFF;
+      if (gap > 0x7FFFFFFF) {
+        gap = 0; // reordered or duplicate: ignore, and keep the newer `last`
+        received++;
+        return 0;
+      }
+    }
+    _last = seq;
+    lost += gap;
+    received++;
+    return gap;
+  }
+
+  void reset() {
+    _last = null;
+    lost = 0;
+    received = 0;
   }
 }

@@ -82,6 +82,10 @@ void main() {
       expect(lost % 10, 0, reason: 'whole 10-sample EEG packets');
       expect(_nan(s.eeg[0]), lost, reason: 'every lost sample is a visible gap');
       expect(_nan(s.eeg[1]), lost);
+      // neo-fake spends a seq number on every dropped packet, so this is link loss and not device loss
+      expect(client.linkPacketsLost, 6, reason: 'seq gap = the 6 dropped packets');
+      expect(buffer.eegSamplesLostLink, lost);
+      expect(buffer.eegSamplesLostDevice, 0);
 
       // 3. pause the device until the client drops, then resume: the buffer starts over
       autoConnect = client.onDeviceDiscovered.listen((d) => client.connectAndStart(d));

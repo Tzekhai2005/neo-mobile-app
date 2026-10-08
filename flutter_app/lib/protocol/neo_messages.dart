@@ -23,12 +23,15 @@ class NeoHeader {
   final int sampleIdx;
   final int tUs;
 
-  const NeoHeader({this.module = 0, this.seq = 0, this.sampleIdx = 0, this.tUs = 0});
+  /// Packets lost on the link right before this one (from `seq`); see [NeoPacket.linkGap].
+  final int linkGap;
+
+  const NeoHeader({this.module = 0, this.seq = 0, this.sampleIdx = 0, this.tUs = 0, this.linkGap = 0});
 
   static const NeoHeader empty = NeoHeader();
 
   factory NeoHeader.of(NeoPacket p) =>
-      NeoHeader(module: p.module, seq: p.seq, sampleIdx: p.sampleIdx, tUs: p.tUs);
+      NeoHeader(module: p.module, seq: p.seq, sampleIdx: p.sampleIdx, tUs: p.tUs, linkGap: p.linkGap);
 }
 
 /// A decoded packet. One subclass per packet type.
