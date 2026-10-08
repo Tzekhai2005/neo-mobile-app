@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../data/recording_source.dart';
 import '../data/review_event.dart';
+import 'report_fonts.dart';
 import 'report_models.dart';
 
 // ── Palette (print-friendly; change here) ──────────────────────────────────────
@@ -67,24 +68,59 @@ class ReportPdf {
     return '${brand.isEmpty ? 'report' : brand}-eeg-report-${d.year}${_two(d.month)}${_two(d.day)}.pdf';
   }
 
-  /// `compress: false` leaves page text readable in the raw bytes (used by tests).
-  static Future<Uint8List> build(ReportData data, {bool compress = true}) async {
-    final doc = pw.Document(
-      compress: compress,
-      title: pdfSafe('EEG review report'),
-      author: pdfSafe(data.header.brand),
-      creator: pdfSafe(data.header.brand),
-      subject: pdfSafe(data.header.synthetic ? 'Sample recording (synthetic data)' : 'EEG review report'),
-    );
-    doc.addPage(pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.all(_margin),
-      theme: pw.ThemeData.withFont(
+  /// `compress: false` leaves page text readable in the raw bytes (standard fonts only).
+  /// With `fonts` the report is set in Noto Sans and any character the font lacks
+  /// becomes "?"; without them the standard PDF fonts are used (Latin-1 only).
+  static Future<Uint8List> build(ReportData data, {bool compress = true, ReportFonts? fonts}) =>
+      ReportPdf._(fonts)._render(data, compress);
+
+  /// The filter applied to every piece of text: characters the fonts cannot draw
+  /// become "?". Exposed so tests can check it directly.
+  static String Function(String) textFilter(ReportFonts? fonts) {
+    if (fonts == null) return pdfSafe;
+    final glyphs = TtfParser(ByteData.sublistView(fonts.regular)).charToGlyphIndexMap.keys.toSet();
+    return (String s) {
+      final b = StringBuffer();
+      for (var r in s.runes) {
+        if (r == 0x0D) r = 0x0A;
+        b.writeCharCode(r == 0x0A || glyphs.contains(r) ? r : 0x3F);
+      }
+      return b.toString();
+    };
+  }
+
+  static pw.ThemeData _themeFor(ReportFonts? f) {
+    if (f == null) {
+      return pw.ThemeData.withFont(
         base: pw.Font.helvetica(),
         bold: pw.Font.helveticaBold(),
         italic: pw.Font.helveticaOblique(),
         boldItalic: pw.Font.helveticaBoldOblique(),
-      ),
+      );
+    }
+    pw.Font ttf(Uint8List b) => pw.Font.ttf(ByteData.sublistView(b));
+    return pw.ThemeData.withFont(base: ttf(f.regular), bold: ttf(f.bold), italic: ttf(f.italic), boldItalic: ttf(f.boldItalic));
+  }
+
+  final String Function(String) _safe;
+  final pw.ThemeData _theme;
+
+  ReportPdf._(ReportFonts? fonts)
+      : _safe = textFilter(fonts),
+        _theme = _themeFor(fonts);
+
+  Future<Uint8List> _render(ReportData data, bool compress) async {
+    final doc = pw.Document(
+      compress: compress,
+      title: _safe('EEG review report'),
+      author: _safe(data.header.brand),
+      creator: _safe(data.header.brand),
+      subject: _safe(data.header.synthetic ? 'Sample recording (synthetic data)' : 'EEG review report'),
+    );
+    doc.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(_margin),
+      theme: _theme,
       header: (c) => _pageHeader(data),
       footer: (c) => _pageFooter(c, data),
       build: (c) => [
@@ -94,7 +130,7 @@ class ReportPdf {
         _perDay(data.summary),
         _quality(data.summary.quality, data.header.recordingStartLocal),
         _section('Recording overview'),
-        _timeline(data),
+        pw.Inseparable(child: _timeline(data)), // the figure and its legend stay together
         pw.NewPage(),
         _section('Events in this report (${data.entries.length})'),
         if (data.selectionIsFallback && data.entries.isNotEmpty)
@@ -123,7 +159,7 @@ class ReportPdf {
 
   // ── text helpers ────────────────────────────────────────────────────────────
 
-  static pw.Widget _text(
+  pw.Widget _text(
     String s, {
     double size = 9,
     bool bold = false,
@@ -133,7 +169,7 @@ class ReportPdf {
     pw.TextAlign? align,
   }) =>
       pw.Text(
-        pdfSafe(s),
+        _safe(s),
         maxLines: maxLines,
         textAlign: align,
         style: pw.TextStyle(
@@ -141,11 +177,11 @@ class ReportPdf {
           fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
           fontStyle: italic ? pw.FontStyle.italic : pw.FontStyle.normal,
           color: color,
-          lineSpacing: 1.5,
+          lineSpacing: 1.0,
         ),
       );
 
-  static pw.Widget _section(String title) => pw.Padding(
+  pw.Widget _section(String title) => pw.Padding(
         padding: const pw.EdgeInsets.only(top: 16, bottom: 6),
         child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
           _text(title, size: 12, bold: true),
@@ -156,7 +192,7 @@ class ReportPdf {
 
   // ── page furniture ──────────────────────────────────────────────────────────
 
-  static pw.Widget _pageHeader(ReportData d) => pw.Container(
+  pw.Widget _pageHeader(ReportData d) => pw.Container(
         padding: const pw.EdgeInsets.only(bottom: 6),
         margin: const pw.EdgeInsets.only(bottom: 10),
         decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: _rule, width: 0.6))),
@@ -174,7 +210,7 @@ class ReportPdf {
         ]),
       );
 
-  static pw.Widget _pageFooter(pw.Context c, ReportData d) => pw.Container(
+  pw.Widget _pageFooter(pw.Context c, ReportData d) => pw.Container(
         padding: const pw.EdgeInsets.only(top: 6),
         margin: const pw.EdgeInsets.only(top: 8),
         decoration: const pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(color: _rule, width: 0.6))),
@@ -187,7 +223,7 @@ class ReportPdf {
 
   // ── first page ──────────────────────────────────────────────────────────────
 
-  static pw.Widget _title(ReportData d) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+  pw.Widget _title(ReportData d) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         _text('EEG review report', size: 24, bold: true),
         pw.SizedBox(height: 4),
         _text('${_dateTime(d.header.recordingStartLocal)}  to  ${_dateTime(d.header.recordingEndLocal)}',
@@ -195,7 +231,7 @@ class ReportPdf {
         pw.SizedBox(height: 12),
       ]);
 
-  static pw.Widget _facts(ReportData d) {
+  pw.Widget _facts(ReportData d) {
     final h = d.header;
     final dev = h.device;
     String orNot(String? s) => (s == null || s.isEmpty) ? 'not recorded' : s;
@@ -224,13 +260,13 @@ class ReportPdf {
     );
   }
 
-  static String _offset(int minutes) {
+  String _offset(int minutes) {
     final sign = minutes < 0 ? '-' : '+';
     final m = minutes.abs();
     return '$sign${_two(m ~/ 60)}:${_two(m % 60)}';
   }
 
-  static pw.Widget _figures(ReportSummary s) {
+  pw.Widget _figures(ReportSummary s) {
     pw.Widget stat(String value, String label) => pw.Expanded(
           child: pw.Container(
             padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -262,7 +298,7 @@ class ReportPdf {
     );
   }
 
-  static pw.Widget _perDay(ReportSummary s) {
+  pw.Widget _perDay(ReportSummary s) {
     pw.Widget cell(String t, {bool head = false, bool right = false}) => pw.Padding(
           padding: const pw.EdgeInsets.symmetric(vertical: 3, horizontal: 2),
           child: _text(t, size: 8.5, bold: head, color: head ? _muted : _ink, align: right ? pw.TextAlign.right : null),
@@ -306,8 +342,8 @@ class ReportPdf {
     );
   }
 
-  static pw.Widget _quality(SignalQualitySummary q, DateTime recordingStart) {
-    const maxListed = 6;
+  pw.Widget _quality(SignalQualitySummary q, DateTime recordingStart) {
+    const maxListed = 4;
     final stretches = q.lowQualityStretches;
     final lines = <String>[
       'Usable signal: ${q.usablePercent.toStringAsFixed(1)} % (${_duration(q.usableSec)}). '
@@ -336,7 +372,7 @@ class ReportPdf {
 
   static const double _timelineHeight = 126;
 
-  static pw.Widget _timeline(ReportData d) {
+  pw.Widget _timeline(ReportData d) {
     final dur = d.header.durationSec.toDouble();
     final start = d.header.recordingStartLocal;
     final sod0 = start.hour * 3600 + start.minute * 60 + start.second;
@@ -389,7 +425,7 @@ class ReportPdf {
     ]);
   }
 
-  static void _paintTimeline(PdfGraphics g, PdfPoint size, ReportData d) {
+  void _paintTimeline(PdfGraphics g, PdfPoint size, ReportData d) {
     final w = size.x, h = size.y;
     final dur = d.header.durationSec.toDouble();
     if (dur <= 0) return;
@@ -505,13 +541,13 @@ class ReportPdf {
   static const double _eegRow = 46;
   static const double _motionHeight = 50;
 
-  static String _statusLabel(ReviewStatus s) => switch (s) {
+  String _statusLabel(ReviewStatus s) => switch (s) {
         ReviewStatus.confirmed => 'Confirmed by reviewer',
         ReviewStatus.dismissed => 'Dismissed by reviewer',
         ReviewStatus.candidate => 'Not yet reviewed',
       };
 
-  static pw.Widget _entry(ReportData d, ReportEntry e) {
+  pw.Widget _entry(ReportData d, ReportEntry e) {
     final w = e.window;
     final eegHeight = _eegRow * w.channels;
     final hasNote = e.review.note != null;
@@ -683,7 +719,7 @@ class ReportPdf {
   }
 
   /// The frame every signal chart shares: event span, 5 s grid, event-start line.
-  static void _paintFrame(PdfGraphics g, double wd, double ht, SignalWindow w, double eventSec) {
+  void _paintFrame(PdfGraphics g, double wd, double ht, SignalWindow w, double eventSec) {
     double x(double sec) => sec / w.durationSec * wd;
     g.setFillColor(_span);
     g.drawRect(x(w.preSec), 0, math.max(1.2, x(w.preSec + eventSec) - x(w.preSec)), ht);
@@ -704,7 +740,7 @@ class ReportPdf {
     g.strokePath();
   }
 
-  static void _paintEeg(PdfGraphics g, PdfPoint size, SignalWindow w, double eventSec, double halfUv, double barUv) {
+  void _paintEeg(PdfGraphics g, PdfPoint size, SignalWindow w, double eventSec, double halfUv, double barUv) {
     final wd = size.x, ht = size.y;
     _paintFrame(g, wd, ht, w, eventSec);
     final rowH = ht / w.channels;
@@ -728,7 +764,7 @@ class ReportPdf {
     g.strokePath();
   }
 
-  static void _paintMotion(PdfGraphics g, PdfPoint size, SignalWindow w, List<Float32List> series, double lo, double hi,
+  void _paintMotion(PdfGraphics g, PdfPoint size, SignalWindow w, List<Float32List> series, double lo, double hi,
       List<PdfColor> colors) {
     final wd = size.x, ht = size.y;
     _paintFrame(g, wd, ht, w, 0);
@@ -751,7 +787,7 @@ class ReportPdf {
 
   /// Min/max-per-column polyline of `v` across `width` points. A value `s` is drawn at
   /// `yCenter + s * k`, limited to `±limit` around the centre; NaN breaks the line.
-  static void _trace(PdfGraphics g, Float32List v, double width, double yCenter, double k, double limit) {
+  void _trace(PdfGraphics g, Float32List v, double width, double yCenter, double k, double limit) {
     final n = v.length;
     if (n == 0) return;
     final cols = math.max(1, width.floor());
@@ -797,7 +833,7 @@ class ReportPdf {
 
   // ── last page ───────────────────────────────────────────────────────────────
 
-  static pw.Widget _method(ReportData d) {
+  pw.Widget _method(ReportData d) {
     final lines = <String>[
       'Candidate events are found automatically and ranked by a confidence score. The score is a ranking aid, not a probability, and it has not been validated against clinician-scored recordings.',
       'A clinician decides what each event is. Events marked "Confirmed" were confirmed by the reviewer; the rest are suggestions.',
@@ -819,13 +855,13 @@ class ReportPdf {
     ]);
   }
 
-  static pw.Widget _signOff() => pw.Row(children: [
+  pw.Widget _signOff() => pw.Row(children: [
         pw.Expanded(child: _line('Reviewed by')),
         pw.SizedBox(width: 24),
         pw.SizedBox(width: 120, child: _line('Date')),
       ]);
 
-  static pw.Widget _line(String label) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+  pw.Widget _line(String label) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Container(height: 0.6, color: _ink),
         pw.SizedBox(height: 3),
         _text(label, size: 8, color: _muted),

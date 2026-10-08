@@ -1,78 +1,112 @@
-# 🧠 Neo Ear-EEG Mobile App & Stage Presentation Suite
+# Neuravance Neo companion app
 
-This suite is built for your **Competition Demo Day**. It provides:
-1. **Instant Mobile Web Companion:** Runs right now on your Mac using standard Python (zero dependencies). You can open it on your Android or iPhone immediately to rehearse and record your screen for PowerPoint.
-2. **Native Android Flutter Codebase:** Ready to build into an installable `.apk` directly in the cloud using GitHub Actions (no need to install 20 GB of developer tools on your Mac).
-3. **High-Visibility Stage Mode:** Designed with glowing cyan and violet waveforms, large fonts, and bold status badges so it can be seen by judges from a distance.
-4. **Interactive Seizure Trigger:** Tap **`[⚡ TRIGGER SEIZURE DEMO]`** to inject high-amplitude epileptic spikes live on stage and demonstrate the clinical seizure detection capability to investors.
+A Flutter app (Android first) for the **Neo ear-EEG** device. It finds the device on Wi-Fi,
+streams EEG and motion data, lets a reviewer go through the events found in a long
+recording, and produces a clinic-style PDF report with CSV data. This is a **research
+prototype, not a medical device**.
 
----
+## Where things stand
 
-## 🚀 Quick Start 1: Run the App on Your Phone Right Now (2 Minutes)
+| | |
+|---|---|
+| **Built and tested** (on a Mac, against the `neo-fake` simulator) | Finding the device and talking the Neo protocol; every device packet decoded; automatic reconnect and a no-data flag; live buffers for 2 to 4 EEG channels plus accelerometer and gyro; device status (battery, signal, button, warnings); the recording format and its importer; review decisions (confirm, dismiss, note); the report (summary, PDF in Noto Sans, CSV zip) and its export |
+| **Built, never tried on a phone** | The Android build with the share and file-picker plugins (CI compiles it first); the share sheet; the file chooser; whether the phone hears the device's broadcast announcements |
+| **Not built** | The new pages (start page, Data, Review, Report: not designed yet); recording a live session to storage; link-loss and lead-off percentages in the report (they need that recorder); background recording; landscape; non-Latin text beyond Greek and Cyrillic in the PDF |
 
-You do **not** need the hardware or developer tools to test the mobile app on your phone today.
+The only screen today is the old one in `flutter_app/lib/ui/`. The demo recording is
+**synthetic** (made up by a script), and says so in every report.
 
-### Step 1: Start the Companion Server on Your Mac
-Open Terminal on your Mac and run:
+## Documentation
+
+* [docs/architecture.md](docs/architecture.md): the layers, the one object that owns the
+  connection, timings, storage, and the tests.
+* [docs/recording-format.md](docs/recording-format.md): the **recording zip** you can import
+  (`manifest.json`, `overview.json`, `windows.bin`), field by field, and how to make one.
+* [docs/report-and-quality.md](docs/report-and-quality.md): what the report and the CSV
+  files contain, and **where every number comes from**, including link loss and lead-off.
+
+## Quick start
+
+You need Flutter (3.47 or newer) and Python 3. Everything below runs from the repository root.
+
 ```bash
-python3 /Users/tzekhai/.gemini/antigravity/scratch/neo_mobile_app/stage_companion/server.py
+cd flutter_app
+flutter pub get
+flutter analyze
+flutter test --concurrency=1 test        # all tests (the end-to-end ones need neo-fake, see below)
 ```
 
-### Step 2: Open It on Your Phone
-The terminal will display your Mac's local IP address, for example:
-```
-[*] Open on your Phone: http://192.168.1.50:8080
-```
-1. Make sure your phone and Mac are on the same Wi-Fi (or your phone's personal hotspot).
-2. Open that link in **Chrome** (Android) or **Safari** (iPhone).
-3. *(Optional Pro-Tip)*: Tap your browser menu and choose **"Add to Home Screen"**. The app will now launch full-screen with no browser address bar, looking 100% like a native app!
+Tests that need no hardware and no simulator are the ones CI runs; see
+[docs/architecture.md](docs/architecture.md#tests) for the exact list.
 
----
+### Without hardware: the simulator
 
-## ⚡ Quick Start 2: Rehearse Against `neo-fake` (Hardware Simulator)
+The Neuravance repository has `neo-fake`, a device simulator that speaks the real protocol
+over real sockets. Install its Python package (`software/protocol/python`, `pip install -e`),
+make sure UDP 5000 and TCP 5001 are free, then:
 
-In a separate terminal window on your Mac, run the mock hardware simulator from the Neuravance repository:
 ```bash
-neo-fake --auto
+cd flutter_app
+flutter test --concurrency=1 test/integration
 ```
-The server will automatically discover `neo-fake` on UDP port 5000, send `START`, and stream live simulated ear-EEG straight into your phone! You can type `blink`, `clench`, `alpha`, or `button` into the `neo-fake` terminal to inject real-time artifacts.
 
----
+These runs connect the real client to `neo-fake` and check the live data, packet loss,
+reconnecting, battery and button events, and exporting a report while streaming.
 
-## 📱 Quick Start 3: Build the Standalone Native Android APK
+### A sample report
 
-If you want a native `.apk` file to install directly onto an Android phone:
+```bash
+cd flutter_app
+dart --packages=.dart_tool/package_config.json tool/make_sample_report.dart \
+     assets/demo_recording build/sample_report --demo-review
+```
 
-1. Push this folder to your GitHub account:
-   ```bash
-   cd /Users/tzekhai/.gemini/antigravity/scratch/neo_mobile_app
-   git init
-   git add .
-   git commit -m "feat: Neo mobile companion app"
-   git remote add origin https://github.com/<your-username>/neo-mobile-app.git
-   git push -u origin main
-   ```
-2. In your GitHub repository, click the **"Actions"** tab.
-3. The **"Build Android APK"** workflow will automatically run and compile the APK in the cloud.
-4. Once complete (~3 minutes), download **`neo-companion-android-apk`** from the Actions summary page, send it to your Android phone, and tap **Install**!
+writes a PDF and a folder of CSV files into `build/sample_report/`. `--demo-review`
+confirms a few events and adds example notes first (made up); leave it off to see the
+"unreviewed candidates" report. `--builtin-fonts` uses the standard PDF fonts instead of Noto Sans.
 
----
+### Your own recording
 
-## 🎯 Demo Day Pitch Playbook
+A recording is one zip. Make one from your own data with
+[`tools/write_recording_example.py`](tools/write_recording_example.py), or a synthetic one:
 
-When presenting to judges and investors:
+```bash
+python3 tools/make_demo_dataset.py --hours 24 --events 40 --out /tmp/rec --zip my_recording.zip
+```
 
-1. **Holding the Phone Live on Stage:**
-   * The app is set to **50 µV / div** with thick neon-cyan (Channel 1) and violet (Channel 2) traces.
-   * Point out the **`● 250 SPS • LIVE`** indicator and the **`100% CONTACT • GOOD`** electrode impedance badge.
-2. **The "Seizure Detection" Moment:**
-   * Explain: *"Our device continuously monitors brainwaves for early seizure onset..."*
-   * Tap **`[⚡ TRIGGER SEIZURE DEMO]`** on your phone.
-   * Watch the screen:
-     * The trace instantly erupts into classic 3 Hz spike-and-wave discharges.
-     * The banner flashes crimson: **`⚠️ SEIZURE DETECTED (94%)`**.
-     * A real-time duration timer counts the episode length.
-   * Tap **`[📄 REPORT]`** to display the clinical summary report (aligned with the European SeizeIT2 clinical ear-EEG trial).
-3. **PowerPoint Video Recording:**
-   * Use your phone's built-in Screen Recorder to record a 15-second clip of you tapping the seizure button and the alert firing.
-   * Embed this high-resolution video directly into your presentation slide as a backup!
+In the app, the recording picker imports the zip into the app's own storage and remembers
+the choice. The format and the importer's safety rules are in
+[docs/recording-format.md](docs/recording-format.md).
+
+### On a phone
+
+There is no Android SDK on the development Mac, so the APK is built by CI: push to GitHub
+and take `neo-companion-android-apk` from the workflow run
+(`.github/workflows/build_apk.yml`: it runs the unit tests first, then builds).
+
+To look at the screen without a phone, run it as a web app from a *copy* of `flutter_app`
+(`flutter create --platforms=web .`, then `flutter run -d web-server`). A browser cannot
+open the raw network sockets the device needs, so it will always show "Disconnected".
+
+## Repository map
+
+```
+flutter_app/
+  lib/protocol/   the Neo protocol: framing, decoders, the client
+  lib/live/       live signal buffers          lib/device/   device status
+  lib/data/       recording format, importer, review decisions
+  lib/report/     report model, CSV, PDF, export, fonts
+  lib/app/        AppServices (the one owner) and AppScope
+  lib/ui/         the old screen
+  assets/         demo_recording/ (synthetic) and fonts/ (Noto Sans)
+  test/           unit tests; test/integration/ needs neo-fake
+  tool/           make_sample_report.dart
+tools/            make_demo_dataset.py, write_recording_example.py
+docs/             the documents above
+stage_companion/  OLD Python web companion; not used by the app, not maintained
+```
+
+## Third-party
+
+The report is set in **Noto Sans** (`flutter_app/assets/fonts/`), licensed under the SIL
+Open Font License 1.1; the licence text is `flutter_app/assets/fonts/OFL.txt`.

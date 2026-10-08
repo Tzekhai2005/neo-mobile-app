@@ -411,8 +411,9 @@ def verify(out):
                 check(ov["quality"][b] >= 0.5, "auto event inside a low-quality segment " + e["id"])
             else:
                 check(e["confidence"] is None, "marker confidence " + e["id"])
-            counts[e["truth"]] = counts.get(e["truth"], 0) + 1
-            if e["truth"] == "seizure-like":
+            truth = e.get("truth", "unlabelled")  # real recordings have no generator ground truth
+            counts[truth] = counts.get(truth, 0) + 1
+            if truth == "seizure-like":
                 wf.seek(w["offset"])
                 a = array.array("h")
                 a.frombytes(wf.read(w["length"]))

@@ -3,7 +3,7 @@
 //   dart --packages=.dart_tool/package_config.json tool/make_sample_report.dart [dataset] [out]
 //   (defaults: assets/demo_recording  ->  build/sample_report)
 //
-// Add --raw for an uncompressed PDF (page text is then searchable in the bytes).
+// Add --raw for an uncompressed PDF, --builtin-fonts for the standard PDF fonts instead of Noto Sans.
 // Add --demo-review to confirm the highest-confidence events and add two example
 // notes first, so the sample shows a reviewed report. Those decisions are made up.
 import 'dart:io';
@@ -14,6 +14,7 @@ import 'package:neo_companion/data/review_store.dart';
 import 'package:neo_companion/data/static_recording_source.dart';
 import 'package:neo_companion/report/report_builder.dart';
 import 'package:neo_companion/report/report_csv.dart';
+import 'package:neo_companion/report/report_fonts.dart';
 import 'package:neo_companion/report/report_models.dart';
 import 'package:neo_companion/report/report_pdf.dart';
 import 'package:neo_companion/report/report_selection.dart';
@@ -55,7 +56,9 @@ Future<void> main(List<String> args) async {
     patientLabel: demo ? 'Demo patient' : null,
   );
 
-  final pdf = await ReportPdf.build(data, compress: !args.contains('--raw'));
+  // Noto Sans by default; --builtin-fonts uses the standard PDF fonts (Latin-1 only).
+  final fonts = args.contains('--builtin-fonts') ? null : await ReportFonts.fromDirectory('assets/fonts');
+  final pdf = await ReportPdf.build(data, compress: !args.contains('--raw'), fonts: fonts);
   final file = File('${out.path}/${ReportPdf.suggestedFileName(data)}')..writeAsBytesSync(pdf);
   stdout.writeln('${file.path}  (${(pdf.length / 1024).round()} KB, ${data.entries.length} events)');
   final csvDir = Directory('${out.path}/csv')..createSync();

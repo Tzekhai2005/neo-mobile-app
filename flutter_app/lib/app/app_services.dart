@@ -16,6 +16,8 @@ import '../live/live_signal_buffer.dart';
 import '../protocol/neo_client.dart';
 import '../report/report_builder.dart';
 import '../report/report_exporter.dart';
+import '../report/report_fonts.dart';
+import '../report/report_fonts_assets.dart';
 import '../report/report_models.dart';
 import '../report/report_selection.dart';
 import '../report/share_plus_sharer.dart';
@@ -44,6 +46,7 @@ class AppServices {
   bool _disposed = false;
 
   final DatasetPicker _picker;
+  ReportFonts? _fonts; // given by the caller, or loaded from the app's assets on first export
   DatasetReader? _readerOverride; // tests, or an explicit source; wins over the saved choice
   String? _currentDataset; // null = the bundled demo
   Future<void>? _loading;
@@ -56,11 +59,12 @@ class AppServices {
     DatasetReader? reader,
     FileSharer sharer = const SharePlusFileSharer(),
     DatasetPicker picker = const FilePickerDatasetPicker(),
+    ReportFonts? fonts,
     DateTime Function()? now,
-  }) : this._(client ?? NeoClient(), dataDir, reader, sharer, picker, now ?? DateTime.now);
+  }) : this._(client ?? NeoClient(), dataDir, reader, sharer, picker, fonts, now ?? DateTime.now);
 
   // One client for everything: the tracker and the feed must watch the same one.
-  AppServices._(this.client, this.dataDir, this._readerOverride, this._sharer, this._picker, this._now)
+  AppServices._(this.client, this.dataDir, this._readerOverride, this._sharer, this._picker, this._fonts, this._now)
       : live = LiveSignalBuffer(),
         status = DeviceStatusTracker(client),
         library = dataDir == null ? null : DatasetLibrary(Directory('${dataDir.path}/datasets')) {
@@ -226,7 +230,9 @@ class AppServices {
   }) async {
     final dir = _requireDataDir();
     final data = await buildReport(selection: selection, device: device, patientLabel: patientLabel);
-    return ReportExporter(outputDir: Directory('${dir.path}/reports'), sharer: _sharer).export(data, share: share);
+    _fonts ??= await loadReportFontsFromAssets();
+    return ReportExporter(outputDir: Directory('${dir.path}/reports'), sharer: _sharer, fonts: _fonts)
+        .export(data, share: share);
   }
 
   // ── lifetime ────────────────────────────────────────────────────────────────

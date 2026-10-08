@@ -7,6 +7,8 @@ import 'package:neo_companion/data/review_event.dart';
 import 'package:neo_companion/data/review_store.dart';
 import 'package:neo_companion/data/static_recording_source.dart';
 import 'package:neo_companion/report/report_builder.dart';
+import 'package:neo_companion/report/report_exporter.dart';
+import 'package:neo_companion/report/report_fonts.dart';
 import 'package:neo_companion/report/report_models.dart';
 import 'package:neo_companion/report/report_pdf.dart';
 import 'package:neo_companion/report/report_selection.dart';
@@ -177,6 +179,77 @@ void main() {
       final bytes = await ReportPdf.build(d);
       expect(pages(await rawPdf(d)), greaterThanOrEqualTo(8), reason: 'summary + 6 event pages + method');
       expect(bytes.length, lessThan(3 * 1024 * 1024), reason: 'vector charts, not images');
+    });
+  });
+
+  group('Noto Sans', () {
+    late ReportFonts fonts;
+    setUpAll(() async => fonts = await ReportFonts.fromDirectory('assets/fonts'));
+
+    test('the four faces are real TrueType fonts under the Open Font Licence', () {
+      for (final f in [fonts.regular, fonts.bold, fonts.italic, fonts.boldItalic]) {
+        expect(f.length, greaterThan(300 * 1024));
+        expect(f.sublist(0, 4), anyOf(equals([0, 1, 0, 0]), equals([0x74, 0x72, 0x75, 0x65])), reason: 'TrueType header');
+      }
+      expect(File('assets/fonts/OFL.txt').readAsStringSync(), contains('SIL Open Font License'));
+    });
+
+    test('keeps what the font has and turns the rest into ?', () {
+      final keep = ReportPdf.textFilter(fonts);
+      for (final ok in ['50 µV, 36 °C', 'café Žluťoučký Müller', 'Привет мир', 'Ελλάδα', 'Tiếng Việt', 'x — y · z']) {
+        expect(keep(ok), ok, reason: ok);
+      }
+      expect(keep('日本語 note'), '??? note');
+      expect(keep('தமிழ்'), '?????');
+      expect(keep('a\r\nb'), 'a\n\nb');
+      expect(keep('line1\nline2'), 'line1\nline2');
+    });
+
+    test('without fonts the filter is the Latin-1 one', () {
+      final plain = ReportPdf.textFilter(null);
+      expect(plain('café µV'), 'café µV');
+      expect(plain('Привет'), '??????');
+      expect(plain('x — y'), 'x ? y', reason: 'the standard fonts lack the em dash');
+    });
+
+    test('embeds the font, and the report stays a reasonable size', () async {
+      final d = await reportFor(mini, confirmTop: 2);
+      final plain = await ReportPdf.build(d);
+      final noto = await ReportPdf.build(d, fonts: fonts);
+      expect(latin1.decode(noto.sublist(0, 5)), '%PDF-');
+      final raw = await ReportPdf.build(d, compress: false, fonts: fonts);
+      expect(latin1.decode(raw), allOf(contains('NotoSans'), contains('/FontFile2')));
+      // ignore: avoid_print
+      print('PDF size, standard fonts ${(plain.length / 1024).round()} KB, Noto Sans ${(noto.length / 1024).round()} KB');
+      expect(noto.length, lessThan(6 * 1024 * 1024));
+    });
+
+    test('Cyrillic, accents and a Chinese note: the first two are readable in the file, the last is "?"', () async {
+      final d = await reportFor(mini, confirmTop: 1, notes: {'0': 'Привет, café, Žluťoučký, 日本語'});
+      final pdf = await ReportPdf.build(d, fonts: fonts);
+      final out = Directory('build/font_check')..createSync(recursive: true);
+      final file = File('${out.path}/unicode_note.pdf')..writeAsBytesSync(pdf);
+      final pdftotext = Process.runSync('which', ['pdftotext']);
+      if (pdftotext.exitCode != 0) {
+        // ignore: avoid_print
+        print('pdftotext not installed: wrote ${file.path} but cannot read it back here');
+        return;
+      }
+      final text = Process.runSync('pdftotext', ['-layout', file.path, '-']).stdout as String;
+      expect(text, contains('Привет'));
+      expect(text, contains('café'));
+      expect(text, contains('Žluťoučký'));
+      expect(text, contains('???'), reason: 'the Chinese characters are not in Noto Sans');
+      expect(text, isNot(contains('日本語')));
+    });
+
+    test('the exporter sets the PDF in Noto Sans when it is given the fonts', () async {
+      final out = Directory.systemTemp.createTempSync('neo_font_exp_');
+      addTearDown(() => out.deleteSync(recursive: true));
+      final d = await reportFor(mini, confirmTop: 1, notes: {'0': 'Привет'});
+      final r = await ReportExporter(outputDir: out, fonts: fonts).export(d);
+      final raw = latin1.decode(await r.pdf.readAsBytes());
+      expect(raw, contains('NotoSans'));
     });
   });
 }

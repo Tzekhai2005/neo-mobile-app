@@ -117,6 +117,33 @@ void main() {
       final window = await src.eventWindow(src.events().first.id);
       expect(window.eeg[0].length, 250 * 40);
     }, skip: python ? false : 'python3 not available');
+
+    test('a recording written by tools/write_recording_example.py (the documented converter) imports and loads', () async {
+      final folder = Directory('${sandbox.path}/example');
+      final zip = File('${sandbox.path}/example.zip');
+      final r = Process.runSync('python3', ['../tools/write_recording_example.py', '--out', folder.path, '--zip', zip.path]);
+      expect(r.exitCode, 0, reason: '${r.stdout}${r.stderr}');
+
+      final s = await lib.importZip(zip);
+      expect(s.durationSec, 600);
+      expect(s.eventCount, 2);
+      expect(s.eegChannels, 2);
+      expect(s.synthetic, isTrue);
+      final src = StaticRecordingSource(DirectoryDatasetReader(s.dir.path));
+      await src.load();
+      final events = src.events();
+      expect(events.map((e) => e.id), ['e0001', 'e0002']);
+      expect(events[0].confidence, 0.91);
+      expect(events[1].confidence, isNull, reason: 'a button press has no confidence');
+      expect(events[0].startSec(250), 120);
+      final w = await src.eventWindow('e0001');
+      expect(w.eeg.length, 2);
+      expect(w.eeg[0].length, 250 * 40);
+      expect(w.accelZ[0], closeTo(1.0, 0.02), reason: 'gravity on z, in g');
+      // the 10 Hz, 14 µV sine and 3 µV noise written by the example come back in µV
+      final peak = w.eeg[0].map((v) => v.abs()).reduce((a, b) => a > b ? a : b);
+      expect(peak, inInclusiveRange(10, 30));
+    }, skip: python ? false : 'python3 not available');
   });
 
   group('rejecting bad zips, leaving nothing behind', () {

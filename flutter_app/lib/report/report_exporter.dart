@@ -5,6 +5,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart' show compute;
 
 import 'report_csv.dart';
+import 'report_fonts.dart';
 import 'report_models.dart';
 import 'report_pdf.dart';
 
@@ -34,15 +35,25 @@ class ExportedReport {
   const ExportedReport({required this.dir, required this.pdf, required this.csvZip, required this.csvFileCount});
 }
 
+/// What the PDF isolate needs: the report and (optionally) the fonts.
+class _PdfJob {
+  final ReportData data;
+  final ReportFonts? fonts;
+  const _PdfJob(this.data, this.fonts);
+}
+
 /// Top-level so `compute` can run it in another isolate.
-Future<Uint8List> _drawPdf(ReportData data) => ReportPdf.build(data);
+Future<Uint8List> _drawPdf(_PdfJob job) => ReportPdf.build(job.data, fonts: job.fonts);
 
 /// Writes a report as a PDF plus one zip of CSV files, and optionally shares both.
 class ReportExporter {
   final Directory outputDir;
   final FileSharer? sharer;
 
-  const ReportExporter({required this.outputDir, this.sharer});
+  /// The fonts to set the PDF in; null uses the standard PDF fonts (Latin-1 only).
+  final ReportFonts? fonts;
+
+  const ReportExporter({required this.outputDir, this.sharer, this.fonts});
 
   /// `report-20261007-093000`: from the time the report was generated, so two
   /// exports never overwrite each other.
@@ -68,7 +79,7 @@ class ReportExporter {
       await dir.create(recursive: true);
 
       // Drawing the pages is the slow part, so it runs off the UI isolate.
-      final pdfBytes = await compute(_drawPdf, data);
+      final pdfBytes = await compute(_drawPdf, _PdfJob(data, fonts));
       final pdfName = ReportPdf.suggestedFileName(data);
       pdf = File('${dir.path}/$pdfName');
       await pdf.writeAsBytes(pdfBytes, flush: true);
