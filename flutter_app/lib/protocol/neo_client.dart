@@ -32,7 +32,26 @@ class NeoDeviceInfo {
 ///  connected  – START was ACKed; data is expected on UDP
 enum NeoConnState { searching, connecting, connected }
 
-class NeoClient {
+/// What the device status tracker needs from the client. [NeoClient] implements
+/// it; tests implement it with plain stream controllers.
+abstract class DeviceEventSource {
+  /// Every decoded device packet, in arrival order.
+  Stream<NeoMessage> get messages;
+
+  /// The device INFO, announced right after GET_INFO is ACKed.
+  Stream<NeoInfo> get onInfo;
+
+  /// Every change of [state].
+  Stream<NeoConnState> get onStateChanged;
+
+  /// Raised after ~0.9 s without data, cleared when data returns or the link drops.
+  Stream<bool> get onDataStalledChanged;
+
+  NeoConnState get state;
+  bool get dataStalled;
+}
+
+class NeoClient implements DeviceEventSource {
   static const int _udpPort = 5000;
   static const Duration _tcpConnectTimeout = Duration(seconds: 3);
   static const Duration _cmdTimeout = Duration(seconds: 1);
@@ -50,10 +69,12 @@ class NeoClient {
   NeoDeviceInfo? connectedDevice;
   bool isStreaming = false;
   NeoConnState _state = NeoConnState.searching;
+  @override
   NeoConnState get state => _state;
 
   /// True while connected but no data has arrived for [_stallAfter]. Clears as
   /// soon as a packet arrives; after [_lostAfter] the connection is dropped.
+  @override
   bool get dataStalled => _stalled;
 
   /// Inbound packets rejected for bad size/magic/version/CRC.
@@ -79,16 +100,23 @@ class NeoClient {
   Stream<bool> get onConnectionStateChanged => _connectionStateCtrl.stream;
 
   final StreamController<bool> _stalledCtrl = StreamController<bool>.broadcast();
+  @override
   Stream<bool> get onDataStalledChanged => _stalledCtrl.stream;
+
+  final StreamController<NeoConnState> _stateCtrl = StreamController<NeoConnState>.broadcast();
+  @override
+  Stream<NeoConnState> get onStateChanged => _stateCtrl.stream;
 
   /// Every decoded device packet, in arrival order: EEG, IMU, STATUS and EVENT
   /// from the data link, LOG and ERROR from the control link.
   final StreamController<NeoMessage> _messageCtrl = StreamController<NeoMessage>.broadcast();
+  @override
   Stream<NeoMessage> get messages => _messageCtrl.stream;
 
   /// The device INFO, announced right after GET_INFO is ACKed and before START,
   /// so listeners can configure scales and rates before the first sample.
   final StreamController<NeoInfo> _infoCtrl = StreamController<NeoInfo>.broadcast();
+  @override
   Stream<NeoInfo> get onInfo => _infoCtrl.stream;
 
   /// INFO of the connected device; null while not connected.
@@ -164,7 +192,9 @@ class NeoClient {
   }
 
   void _setState(NeoConnState s) {
+    if (_state == s) return;
     _state = s;
+    _emit(_stateCtrl, s);
   }
 
   /// Run the README §7.2 handshake: TCP connect, GET_INFO, START. Returns true
@@ -353,5 +383,6 @@ class NeoClient {
     _stalledCtrl.close();
     _messageCtrl.close();
     _infoCtrl.close();
+    _stateCtrl.close();
   }
 }

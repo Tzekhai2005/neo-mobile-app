@@ -8,3 +8,4 @@ flutter_app/.dart_tool/
 flutter_app/pubspec.lock
 flutter_app/android/local.properties
 flutter_app/android/app/src/main/java/
+flutter_app/.flutter-plugins-dependencies

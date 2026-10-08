@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../app/app_scope.dart';
+import '../app/app_services.dart';
 import '../protocol/neo_client.dart';
 import '../protocol/neo_proto.dart';
 import '../pipeline/eeg_buffer.dart';
@@ -41,7 +43,10 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     with SingleTickerProviderStateMixin {
 
   // ── Data engine ────────────────────────────────────────────────────────────
-  final NeoClient _client = NeoClient();
+  // The connection belongs to the app, not to this screen (see AppServices).
+  late final AppServices _services;
+  NeoClient get _client => _services.client;
+  bool _wired = false;
   final SeizureDetector _det = SeizureDetector();
 
   final EegCircularBuffer _b1 = EegCircularBuffer(capacity: 1250);
@@ -86,6 +91,14 @@ class _StandaloneScreenState extends State<StandaloneScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_wired) return;
+    _wired = true;
+    _services = AppScope.of(context);
     _startDiscovery();
   }
 
@@ -101,8 +114,11 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     _stalledSub = _client.onDataStalledChanged.listen((stalled) {
       if (mounted) setState(() => _noData = stalled);
     });
-    _client.startDiscovery();
+    // Discovery and connecting are done by AppServices; this screen only reflects them.
     _discoverySub = _client.onDeviceDiscovered.listen(_onDeviceFound);
+    _eegSub?.cancel();
+    _eegSub = _client.eegStream.listen(_onSample);
+    _services.status.addListener(_onStatus);
     _connectionSub = _client.onConnectionStateChanged.listen((connected) {
       if (!connected && mounted) {
         setState(() {
@@ -117,6 +133,14 @@ class _StandaloneScreenState extends State<StandaloneScreen>
         });
       }
     });
+
+    if (_client.state == NeoConnState.connected) {
+      // The app connected before this screen appeared.
+      _device = _client.connectedDevice;
+      _source = _SourceMode.connected;
+      _noData = _client.dataStalled;
+      _statusMsg = 'Streaming from ${_device?.name ?? 'Neo'}';
+    }
 
     _discoveryTimeoutTimer?.cancel();
     _discoveryTimeoutTimer = Timer(const Duration(seconds: 2), () {
@@ -134,30 +158,12 @@ class _StandaloneScreenState extends State<StandaloneScreen>
       _source = _SourceMode.disconnected;
       _statusMsg = 'Found ${dev.name} @ ${dev.ip} — connecting…';
     });
-    _connectToDevice(dev);
   }
 
-  Future<void> _connectToDevice(NeoDeviceInfo dev) async {
-    // Subscribe before START so the first packets are not lost on the
-    // broadcast stream.
-    _eegSub?.cancel();
-    _eegSub = _client.eegStream.listen(_onSample);
-
-    final ok = await _client.connectAndStart(dev);
-    if (!mounted) return;
-    if (!ok) {
-      _eegSub?.cancel();
-      setState(() {
-        _source = _SourceMode.disconnected;
-        _statusMsg = 'Connection failed — retrying…';
-      });
-      return;
-    }
-    setState(() {
-      _source = _SourceMode.connected;
-      _batteryPct = dev.batteryPct;
-      _statusMsg = 'Streaming from ${dev.name}';
-    });
+  /// The real battery level from the device's STATUS packets.
+  void _onStatus() {
+    final b = _services.status.value.batteryPct;
+    if (b != null && b != _batteryPct && mounted) setState(() => _batteryPct = b);
   }
 
   void _onSample(EegSample s) {
@@ -244,7 +250,7 @@ class _StandaloneScreenState extends State<StandaloneScreen>
     _discoverySub?.cancel();
     _connectionSub?.cancel();
     _stalledSub?.cancel();
-    _client.dispose();
+    if (_wired) _services.status.removeListener(_onStatus);
     _tabController.dispose();
     super.dispose();
   }

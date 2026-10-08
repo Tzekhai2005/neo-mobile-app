@@ -17,6 +17,10 @@ Standard library only. Deterministic for a given --seed.
     python3 tools/make_demo_dataset.py                      # 72 h -> flutter_app/assets/demo_recording
     python3 tools/make_demo_dataset.py --hours 1 --events 4 --out /tmp/mini
     python3 tools/make_demo_dataset.py --verify-only --out flutter_app/assets/demo_recording
+    python3 tools/make_demo_dataset.py --out /tmp/rec --zip /tmp/my_recording.zip    # a zip for the app's picker
+
+The zip holds the three files at its top level. In the app, choose it with the
+recording picker; it is unpacked into the app's own storage.
 """
 import argparse
 import array
@@ -26,6 +30,7 @@ import math
 import os
 import random
 import sys
+import zipfile
 
 FORMAT_VERSION = 1
 EEG_HZ = 250
@@ -92,7 +97,9 @@ def place_events(rng, clock, hours, n_auto, bad_segments):
     def free(t):
         if any(abs(t - s) < MIN_GAP_S for s in starts):
             return False
-        return not any(a <= t <= b for a, b in bad_segments)
+        # A quality bin is a minute wide and an event runs for up to ~20 s, so keep clear
+        # of the whole bins a bad stretch touches, not just the stretch itself.
+        return not any(a - BIN_S - 20 <= t <= b + BIN_S for a, b in bad_segments)
 
     def draw(night_weight):
         wmax = max(1.0, night_weight)
@@ -423,6 +430,13 @@ def verify(out):
           % (out, size / 1e6, len(m["events"]), counts, night_seizure[0], night_seizure[1]))
 
 
+def make_zip(folder, zip_path):
+    """The three dataset files at the top level of a zip (what the app's picker imports)."""
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in ("manifest.json", "overview.json", "windows.bin"):
+            z.write(os.path.join(folder, name), arcname=name)
+
+
 def start_hour(m):
     t = dt.datetime.strptime(m["startUtc"], "%Y-%m-%dT%H:%M:%SZ") + dt.timedelta(minutes=m["utcOffsetMinutes"])
     return t.hour + t.minute / 60.0 + t.second / 3600.0
@@ -439,10 +453,14 @@ def main():
     ap.add_argument("--start-utc", default="2026-10-05T00:00:00Z", help="recording start (UTC)")
     ap.add_argument("--utc-offset", type=int, default=480, help="local offset in minutes (480 = UTC+8)")
     ap.add_argument("--verify-only", action="store_true", help="check an existing folder, generate nothing")
+    ap.add_argument("--zip", metavar="FILE", help="also write the folder as a zip the app's picker can import")
     args = ap.parse_args()
     if not args.verify_only:
         generate(args)
     verify(args.out)
+    if args.zip:
+        make_zip(args.out, args.zip)
+        print("zip: %s (%.1f MB)" % (args.zip, os.path.getsize(args.zip) / 1e6))
 
 
 if __name__ == "__main__":

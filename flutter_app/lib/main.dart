@@ -1,8 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'app/app_scope.dart';
+import 'app/app_services.dart';
 import 'ui/standalone_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -12,7 +18,21 @@ void main() {
     statusBarColor: Color(0xFF090c15),
     statusBarIconBrightness: Brightness.light,
   ));
-  runApp(const NeoCompanionApp());
+
+  // Review decisions and exported reports live in the app's own folder. Where the
+  // platform has none (the web preview), the services still run without it.
+  Directory? dataDir;
+  try {
+    dataDir = await getApplicationDocumentsDirectory();
+  } catch (_) {
+    dataDir = null;
+  }
+
+  // One owner of the device connection, live data, status and review/report for
+  // the whole life of the app; pages get it from AppScope.
+  final services = AppServices(dataDir: dataDir);
+  await services.start();
+  runApp(AppScope(services: services, child: const NeoCompanionApp()));
 }
 
 class NeoCompanionApp extends StatelessWidget {
