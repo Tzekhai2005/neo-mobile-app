@@ -6,7 +6,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app/app_scope.dart';
 import 'app/app_services.dart';
-import 'ui/standalone_screen.dart';
+import 'config/app_config.dart';
+import 'ui/home/home_page.dart';
+import 'ui/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,8 +17,8 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Color(0xFF090c15),
-    statusBarIconBrightness: Brightness.light,
+    statusBarColor: AppColors.background,
+    statusBarIconBrightness: Brightness.dark,
   ));
 
   // Review decisions and exported reports live in the app's own folder. Where the
@@ -36,24 +38,15 @@ Future<void> main() async {
 }
 
 class NeoCompanionApp extends StatelessWidget {
-  const NeoCompanionApp({Key? key}) : super(key: key);
+  const NeoCompanionApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Neo Ear-EEG',
+      title: kBrandName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF090c15),
-        primaryColor: const Color(0xFF00b4d8),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF00b4d8),
-          secondary: Color(0xFFA855F7),
-          surface: Color(0xFF0f1422),
-        ),
-      ),
-      home: const StandaloneScreen(),
+      theme: buildAppTheme(),
+      home: const HomePage(),
     );
   }
 }

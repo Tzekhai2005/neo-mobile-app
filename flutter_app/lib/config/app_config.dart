@@ -1,6 +1,13 @@
 /// Name shown on the start page and in reports. Change it here.
 const String kBrandName = 'Neuravance';
 
+/// The logo shown on the start page. Replace the file (keep the name), or point
+/// this at another asset. Empty shows [kBrandName] as text instead.
+const String kLogoAsset = 'assets/brand/logo.png';
+
+/// One line under the name on the start page. Empty hides it.
+const String kTagline = '';
+
 /// Where a recording lives: bundled with the app, or a folder on disk.
 class DatasetLocation {
   final String path;
