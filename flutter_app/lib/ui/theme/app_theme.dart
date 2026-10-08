@@ -24,6 +24,11 @@ abstract final class AppColors {
   static const accentSoft = Color(0xFFD1E7FF);
   static const onAccent = Color(0xFFFFFFFF);
 
+  // Signal traces: one colour per EEG channel, one per motion axis. Dark enough
+  // to read on a white lane.
+  static const channel = [Color(0xFF1A7F8E), Color(0xFF6B4FBB), Color(0xFFC77700), Color(0xFF2E8B57)];
+  static const axis = [Color(0xFF2885EF), Color(0xFFD98A00), Color(0xFFD4472B)]; // x, y, z
+
   // Status. The website has no green or amber, so these two are our own.
   static const success = Color(0xFF1E9E63);
   static const warning = Color(0xFFD98A00);

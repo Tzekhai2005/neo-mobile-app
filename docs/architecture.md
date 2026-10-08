@@ -30,8 +30,31 @@ new pages (start page, Data, Review, Report) are not built, and have not been de
     ▲
  app/        AppServices         the one owner of all of the above (below)
              AppScope            hands AppServices to every page
- ui/         standalone_screen.dart   the old screen (reads the shared connection)
+ ui/         theme/app_theme.dart     every colour in one place (the Epile-X palette)
+             home/ shell/ widgets/    the start page, the three tabs and the device strip
+             trace/                   the shared signal view (below)
+             standalone_screen.dart   the old screen (no longer reachable; deleted when the new pages are done)
 ```
+
+## The signal view (`ui/trace/`)
+
+One component draws every signal in the app, so the live Data page and the Review event
+view look and behave the same. It holds no state: it draws a `TraceData` it is given.
+
+* `trace_sources.dart` turns a live snapshot (`liveTraceData`) or a stored event window
+  (`windowTraceData`) into a `TraceData`: EEG lanes (2 to 4 channels), an accelerometer lane
+  and a gyro lane, with the time labels, markers and the shaded event stretch.
+* `signal_lanes.dart` draws it. Every trace is **clipped to its own lane** and a small
+  arrow marks the edge it crossed; **lost samples are a visible gap** with a red band;
+  markers, spans and time labels are laid over all lanes, and labels that would collide
+  are stacked or thinned. Tapping a lane reports its index (for "expand this lane").
+* `trace_math.dart` has the testable parts: baseline removal, per-pixel min/max so a
+  spike never disappears when many samples share a pixel, overflow and gap detection.
+* **Baseline removal is display only.** EEG lanes are high-passed at 0.5 Hz so a signal on
+  a large electrode offset sits in its lane; motion lanes are not (gravity means something).
+  The recorded and live data are never changed.
+* EEG scales are 25, 50, 100, 200, 500 and 1000 µV from the middle of a lane to its edge;
+  the motion scales are fixed (accelerometer ±2 g, gyro ±250 °/s).
 
 ## One owner: `AppServices`
 
@@ -80,7 +103,7 @@ reports/report-…/         exported PDFs and CSV zips
 | Command (in `flutter_app/`) | What it runs |
 |---|---|
 | `flutter test --concurrency=1 test` | everything, including the end-to-end tests below |
-| `flutter test test/protocol_test.dart test/messages_test.dart test/data_test.dart test/live_signal_buffer_test.dart test/report_test.dart test/report_pdf_test.dart test/report_exporter_test.dart test/device_status_test.dart test/app_services_test.dart test/dataset_library_test.dart` | the unit tests; this is the list CI runs |
+| the `flutter test` line in `.github/workflows/build_apk.yml` | the unit and widget tests; this is the list CI runs |
 | `flutter test --concurrency=1 test/integration` | end-to-end runs against a real `neo-fake` process |
 
 The integration tests need `neo-fake` on the PATH (`pip install -e` of the Neuravance
@@ -94,7 +117,7 @@ Some tests run the Python tools in `tools/` (`python3` must be installed).
 
 ## What has never run
 
-Everything above was tested on a Mac against the simulator. **Nothing has run on a real
-phone or on the real hardware.** Not yet verified: the Android build with the share and
-file-picker plugins (CI is its first compile), the share sheet, the file chooser, and
-whether the phone receives the device's broadcast announcements.
+Almost everything was tested on a Mac against the simulator. What has run on a real phone
+with the real device: the Android build with the share and file-picker plugins compiles in
+CI, and the phone found the device, connected, and drew EEG. **Not yet tried on a phone:**
+the share sheet and the file chooser (no page calls them yet), and the new pages.
