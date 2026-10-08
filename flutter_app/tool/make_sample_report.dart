@@ -4,6 +4,7 @@
 //   (defaults: assets/demo_recording  ->  build/sample_report)
 //
 // Add --raw for an uncompressed PDF, --builtin-fonts for the standard PDF fonts instead of Noto Sans.
+// Add --days=2 or --days=2-3 (1-based) to cover only those days of the recording.
 // Add --demo-review to confirm the highest-confidence events and add two example
 // notes first, so the sample shows a reviewed report. Those decisions are made up.
 import 'dart:io';
@@ -47,10 +48,25 @@ Future<void> main(List<String> args) async {
   }
   final events = store.merge(source.events());
 
+  DayRange? days;
+  final daysArg = args.where((a) => a.startsWith('--days=')).firstOrNull?.substring(7);
+  if (daysArg != null) {
+    final p = daysArg.split('-').map(int.parse).toList();
+    days = DayRange(p.first - 1, p.last - 1);
+  }
+  final rate = source.info.eegRateHz;
+  final inDays = days == null
+      ? events
+      : [
+          for (final r in events)
+            if (r.event.startSec(rate) >= days.startSec && r.event.startSec(rate) < (days.last + 1) * 86400.0) r
+        ];
+
   final data = await ReportBuilder.build(
     source: source,
     events: events,
-    selection: ReportSelection.defaultFor(events),
+    days: days,
+    selection: ReportSelection.defaultFor(inDays),
     generatedAtUtc: DateTime.now().toUtc(),
     device: const ReportDevice(name: 'neo-A', serial: 'A0B1C2D3E4F5', firmware: '0.1.0'),
     patientLabel: demo ? 'Demo patient' : null,

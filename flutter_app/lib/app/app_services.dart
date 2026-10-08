@@ -211,16 +211,32 @@ class AppServices {
   /// the one-click choice (confirmed events, or the top candidates if none).
   /// The device named in the report is the one that made the recording, so it is
   /// passed in, never taken from the live connection.
-  Future<ReportData> buildReport({ReportSelection? selection, ReportDevice? device, String? patientLabel}) async {
+  ///
+  /// `days` limits the report to a run of whole days (null = the whole recording).
+  /// The default selection is then made from the events of those days only.
+  Future<ReportData> buildReport({
+    ReportSelection? selection,
+    ReportDevice? device,
+    String? patientLabel,
+    DayRange? days,
+  }) async {
     await loadReview();
     final events = reviewEvents();
+    final rate = recording.info.eegRateHz;
+    final inDays = days == null
+        ? events
+        : [
+            for (final r in events)
+              if (r.event.startSec(rate) >= days.startSec && r.event.startSec(rate) < (days.last + 1) * 86400.0) r
+          ];
     return ReportBuilder.build(
       source: recording,
       events: events,
-      selection: selection ?? ReportSelection.defaultFor(events),
+      selection: selection ?? ReportSelection.defaultFor(inDays),
       generatedAtUtc: _now().toUtc(),
       device: device,
       patientLabel: patientLabel,
+      days: days,
     );
   }
 
@@ -230,10 +246,11 @@ class AppServices {
     ReportSelection? selection,
     ReportDevice? device,
     String? patientLabel,
+    DayRange? days,
     bool share = true,
   }) async {
     final dir = _requireDataDir();
-    final data = await buildReport(selection: selection, device: device, patientLabel: patientLabel);
+    final data = await buildReport(selection: selection, device: device, patientLabel: patientLabel, days: days);
     _fonts ??= await loadReportFontsFromAssets();
     return ReportExporter(outputDir: Directory('${dir.path}/reports'), sharer: _sharer, fonts: _fonts)
         .export(data, share: share);

@@ -238,6 +238,13 @@ class ReportPdf {
     final rows = <List<String>>[
       ['Patient', orNot(h.patientLabel)],
       ['Recording', '${_duration(h.durationSec)}, local time (UTC${_offset(h.utcOffsetMinutes)})'],
+      if (h.isPartial)
+        [
+          'Days covered',
+          h.firstDay == h.lastDay
+              ? 'Day ${h.firstDay! + 1} of ${h.recordingDays}'
+              : 'Days ${h.firstDay! + 1} to ${h.lastDay! + 1} of ${h.recordingDays}',
+        ],
       [
         'Device',
         dev == null

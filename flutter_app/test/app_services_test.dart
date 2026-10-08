@@ -14,6 +14,7 @@ import 'package:neo_companion/data/review_event.dart';
 import 'package:neo_companion/protocol/neo_client.dart';
 import 'package:neo_companion/report/report_exporter.dart';
 import 'package:neo_companion/report/report_models.dart';
+import 'package:neo_companion/report/report_selection.dart';
 import 'package:neo_companion/ui/standalone_screen.dart';
 
 const mini = 'test/fixtures/mini_recording';
@@ -158,6 +159,19 @@ void main() {
       expect(zip.files.any((f) => f.name == 'csv/events.csv'), isTrue);
       expect(out.csvFileCount, zip.files.length);
       expect(sharer.calls, isEmpty);
+    });
+
+    test('can cover only some days, and its default selection stays inside them', () async {
+      final s = services(dataset: 'assets/demo_recording'); // 3 days
+      final r = await s.buildReport(days: const DayRange(1, 1));
+      expect(r.header.isPartial, isTrue);
+      expect(r.selectionIsFallback, isTrue, reason: 'nothing confirmed yet');
+      expect(r.entries, isNotEmpty);
+      for (final e in r.entries) {
+        expect(e.startSec, inInclusiveRange(86400.0, 2 * 86400.0), reason: 'only Day 2');
+      }
+      final out = await s.exportReport(days: const DayRange(1, 1), share: false);
+      expect(out.pdf.path, endsWith('20261006.pdf'));
     });
 
     test('and shares both files by default', () async {

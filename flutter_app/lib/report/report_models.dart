@@ -1,12 +1,11 @@
 import '../data/recording_source.dart';
 import '../data/review_event.dart';
 
+export '../data/score_band.dart' show kHighConfidence, kMediumConfidence, ScoreBand, scoreBandOf;
+
 /// Shown on every report. A clinical layout must not imply a validated diagnosis.
 const String kReportDisclaimer = 'Research prototype. Not a medical device and not for clinical use. '
     'Candidate events are suggestions for a clinician to review, not diagnoses.';
-
-/// An automatic event at or above this confidence counts as "high confidence".
-const double kHighConfidence = 0.8;
 
 /// A stretch of recording is usable when its signal quality is at least this.
 const double kUsableQuality = 0.5;
@@ -33,6 +32,14 @@ class ReportHeader {
   final ReportDevice? device;
   final String? patientLabel;
 
+  /// Set when the report covers only some days of the recording: 0-based,
+  /// inclusive, and the number of days in the whole recording. All null for a
+  /// report of the whole recording. [durationSec], [recordingStartLocal] and
+  /// [recordingEndLocal] describe only the days covered.
+  final int? firstDay;
+  final int? lastDay;
+  final int? recordingDays;
+
   /// True for generated data: the report must say "sample recording".
   final bool synthetic;
   final String generator;
@@ -53,7 +60,12 @@ class ReportHeader {
     required this.datasetKey,
     this.device,
     this.patientLabel,
+    this.firstDay,
+    this.lastDay,
+    this.recordingDays,
   });
+
+  bool get isPartial => firstDay != null;
 }
 
 /// A stretch where the signal quality was too low to use.

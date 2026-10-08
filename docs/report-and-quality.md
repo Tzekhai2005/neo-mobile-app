@@ -27,8 +27,27 @@ The default, "one click" selection is **every confirmed event**. If nothing has 
 confirmed yet, it is the **five highest-confidence automatic candidates that were not
 dismissed**, and the report says so ("No event had been confirmed, so these are the
 highest-confidence unreviewed candidates"). A reviewer can change the selection by hand.
-The summary and the overview figure always describe the **whole** recording, whatever is
-selected.
+The summary and the overview figure describe the **whole** recording (or the days chosen,
+below), whatever events are selected.
+
+### Which days go in
+
+A report can cover the whole recording or a run of **consecutive whole days** (`DayRange`,
+for example Day 2 only, or Days 2 to 3). Then everything in the report describes just those
+days: the summary counts, usable-signal percentage, the per-day table (which keeps the real
+day numbers), the overview figure (which starts at the left edge of the first day) and the
+event pages. An event outside the days is left out even if it was selected, and the default
+selection is made from the events of those days. The first page gets a "Days covered" row
+(for example "Days 2 to 3 of 3") and the file name carries the date of the first day. A range
+that covers every day is the same as the whole recording. The days must be consecutive,
+because the figure and the per-day table describe one continuous stretch of time.
+
+### Score bands
+
+Scores are shown to people as bands, from one place in the code (`lib/data/score_band.dart`):
+**High** from 0.80, **Medium** from 0.40, **Low** below. The report's "high confidence" count
+is the High band, so the app and the PDF always agree. Patient button presses have no score
+and no band.
 
 ## The PDF
 
