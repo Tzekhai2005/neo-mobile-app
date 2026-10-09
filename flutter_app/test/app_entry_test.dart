@@ -26,6 +26,6 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
     expect(find.text('Diary'), findsNothing, reason: 'the old three-tab screen is gone');
     expect(find.text('Raw EEG'), findsNothing);
-    expect(find.text('Live data'), findsOneWidget, reason: 'the new start page\'s main card');
+    expect(find.text('Live brain activity'), findsOneWidget, reason: 'the new start page\'s main card');
   });
 }

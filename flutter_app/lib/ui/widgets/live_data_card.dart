@@ -6,8 +6,8 @@ import '../../live/live_signal_buffer.dart';
 import '../theme/app_theme.dart';
 import 'live_trace.dart';
 
-/// The main card on the start page: the live view, with a small live trace in
-/// it while the device streams.
+/// The live card on the start page: a small live trace while the device streams,
+/// and the way into the Live tab.
 class LiveDataCard extends StatelessWidget {
   final ValueListenable<DeviceStatus> status;
   final LiveSignalBuffer buffer;
@@ -16,32 +16,39 @@ class LiveDataCard extends StatelessWidget {
   const LiveDataCard({super.key, required this.status, required this.buffer, required this.onTap});
 
   static (String, Color) stateOf(LinkState l) => switch (l) {
-        LinkState.connected => ('Streaming', const Color(0xFF6FE3A8)),
-        LinkState.stalled => ('No data', const Color(0xFFFFC857)),
-        LinkState.connecting => ('Connecting', const Color(0xFFFFC857)),
-        LinkState.searching => ('Waiting for the device', const Color(0xFFB6C2D9)),
+        LinkState.connected => ('Streaming', AppColors.success),
+        LinkState.stalled => ('No data', AppColors.warning),
+        LinkState.connecting => ('Connecting', AppColors.warning),
+        LinkState.searching => ('Waiting for the device', AppColors.textMuted),
       };
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.navy,
-      borderRadius: BorderRadius.circular(20),
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: AppColors.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          height: 158,
+          height: 168,
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               ValueListenableBuilder<DeviceStatus>(
                 valueListenable: status,
                 builder: (context, s, _) {
                   final (label, dot) = stateOf(s.link);
                   return Row(children: [
-                    const Text('Live data',
-                        style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: AppColors.onNavy)),
+                    const Flexible(
+                      child: Text('Live brain activity',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Align(
@@ -53,7 +60,7 @@ class LiveDataCard extends StatelessWidget {
                             child: Text(label,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12, color: AppColors.onNavy)),
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           ),
                         ]),
                       ),
@@ -64,11 +71,15 @@ class LiveDataCard extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: LiveTraceStrip(buffer: buffer, status: status, color: AppColors.onNavy),
+                  child: LiveTraceStrip(buffer: buffer, status: status, color: AppColors.accent),
                 ),
               ),
-              Text('Open the live view',
-                  style: TextStyle(fontSize: 13, color: AppColors.onNavy.withValues(alpha: 0.8))),
+              const Row(children: [
+                Text('View live monitoring',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward, size: 16, color: AppColors.accent),
+              ]),
             ]),
           ),
         ),

@@ -37,3 +37,12 @@ const bool kShowExperimentalRisk = true;
 /// The line shown under the activity-risk number. Empty hides just this line and
 /// keeps the readout; [kShowExperimentalRisk] removes the whole thing.
 const String kRiskExperimentalNote = 'Experimental, not a diagnosis';
+
+/// Who the start page greets. Fixed for the demo; there are no accounts yet.
+const String kUserName = 'Estelle';
+
+/// The picture of the device on the start page. Drop a PNG (a transparent
+/// background looks best) at this path and it replaces the placeholder; the file
+/// need not exist. Empty always shows the placeholder. To show a real 3D model
+/// instead, see `lib/ui/widgets/device_hero.dart`.
+const String kDeviceImageAsset = 'assets/brand/device.png';

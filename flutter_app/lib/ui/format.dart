@@ -54,3 +54,18 @@ String sizeText(int bytes) {
 /// "14:32:10", from a local time.
 String clockText(DateTime t) =>
     '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
+
+/// "Good morning", "Good afternoon" or "Good evening", from a local time.
+String greetingFor(DateTime local) => local.hour < 12
+    ? 'Good morning'
+    : local.hour < 18
+        ? 'Good afternoon'
+        : 'Good evening';
+
+/// The one line under the greeting: what the device is doing, said plainly.
+String deviceHeadline(LinkState link) => switch (link) {
+      LinkState.connected => 'Your device is connected.',
+      LinkState.connecting => 'Connecting to your device…',
+      LinkState.stalled => 'Your device is connected but not sending data.',
+      LinkState.searching => 'Looking for your device…',
+    };

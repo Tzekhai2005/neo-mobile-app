@@ -70,7 +70,8 @@ class AppServices {
   }) : this._(client ?? NeoClient(), dataDir, reader, sharer, picker, previewer, fonts, now ?? DateTime.now);
 
   // One client for everything: the tracker and the feed must watch the same one.
-  AppServices._(this.client, this.dataDir, this._readerOverride, this._sharer, this._picker, this.previewer, this._fonts, this._now)
+  AppServices._(this.client, this.dataDir, this._readerOverride, this._sharer, this._picker, this.previewer,
+      this._fonts, this._now)
       : live = LiveSignalBuffer(),
         status = DeviceStatusTracker(client),
         library = dataDir == null ? null : DatasetLibrary(Directory('${dataDir.path}/datasets')) {
@@ -83,6 +84,9 @@ class AppServices {
 
   /// The experimental activity-risk readout; null when [kShowExperimentalRisk] is off.
   late final ActivityRiskMonitor? activityRisk;
+
+  /// The current time, from the clock the app was built with (tests set their own).
+  DateTime now() => _now();
 
   /// Marks the newest sample of the live stream as "Seizure now". Returns null,
   /// and marks nothing, when no sample has arrived yet: a marker needs a place on
@@ -144,7 +148,8 @@ class AppServices {
       if (chosen == null) rethrow;
       // The saved recording is broken or gone: say so, and fall back to the demo
       // instead of leaving the app without a recording.
-      datasetNotice = 'The recording "$chosen" could not be opened (${e.message}), so the demo recording is shown instead.';
+      datasetNotice =
+          'The recording "$chosen" could not be opened (${e.message}), so the demo recording is shown instead.';
       await library!.select(null);
       chosen = null;
       src = StaticRecordingSource(readerFor(kDatasetLocation));

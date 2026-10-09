@@ -206,7 +206,7 @@ The integration tests need `neo-fake` on the PATH (`pip install -e` of the Neura
 **one at a time**, which `--concurrency=1` does. They cover discovery, the handshake, a
 live stream, real packet loss, the no-data flag, the 3 s drop and automatic reconnect,
 battery and button events, exporting a report while streaming, the activity readout, and the
-start page showing the real connection and battery.
+Home tab showing the real connection and battery.
 
 Some tests run the Python tools in `tools/` (`python3` must be installed).
 

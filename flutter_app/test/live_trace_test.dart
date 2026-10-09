@@ -89,7 +89,7 @@ void main() {
     testWidgets('opens the Data page when tapped', (t) async {
       var taps = 0;
       await pump(t, ValueNotifier(const DeviceStatus()), LiveSignalBuffer(), onTap: () => taps++);
-      await t.tap(find.text('Live data'));
+      await t.tap(find.text('Live brain activity'));
       expect(taps, 1);
     });
 
