@@ -487,19 +487,22 @@ void main() {
       expect(orientations.last, [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
     });
 
-    testWidgets('a page that is not on top does no work', (t) async {
+    testWidgets('a page that is not on top does no work, and catches up when shown again', (t) async {
       final s = services();
       s.status.value = connected;
       stream(s);
       await openShell(t, s);
-      final before = lanes(t).data;
+      SignalLanes anyLanes() => t.widget<SignalLanes>(find.byType(SignalLanes, skipOffstage: false));
+      final before = anyLanes().data;
       await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Review')));
       await t.pump();
       stream(s, seconds: 2);
-      await t.pump(const Duration(milliseconds: 400));
+      await t.pump(const Duration(milliseconds: 600)); // many ticks' worth of time
+      expect(identical(anyLanes().data, before), isTrue, reason: 'hidden, so not redrawn');
       await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Data')));
-      await t.pump(const Duration(milliseconds: 200));
-      expect(identical(lanes(t).data, before), isFalse, reason: 'it catches up when shown again');
+      await t.pump(); // the page learns it is shown again during this frame
+      await t.pump(const Duration(milliseconds: 300));
+      expect(identical(anyLanes().data, before), isFalse, reason: 'shown again, so it caught up');
     });
   });
 }

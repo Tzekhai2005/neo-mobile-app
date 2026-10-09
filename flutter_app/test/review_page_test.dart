@@ -97,14 +97,13 @@ void main() {
   });
 
   group('the shell', () {
-    testWidgets('the Review tab is the real page, and Report is still a placeholder', (t) async {
+    testWidgets('the Review tab is the real page, and the Report tab is the real Report page', (t) async {
       final s = await services(t, mini);
       await open(t, s, home: const AppShell(initialTab: 1));
       expect(find.byType(ReviewPage), findsOneWidget);
-      expect(find.text('This page is built in a later step.'), findsNothing);
       await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Report')));
       await settle(t);
-      expect(find.text('This page is built in a later step.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('create-report')), findsOneWidget);
     });
 
     testWidgets('keeps the phone upright on the Review tab', (t) async {

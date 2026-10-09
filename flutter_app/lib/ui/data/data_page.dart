@@ -11,6 +11,7 @@ import '../../config/app_config.dart';
 import '../../device/device_status.dart';
 import '../format.dart';
 import '../orientation.dart';
+import '../shell/tab_scope.dart';
 import '../theme/app_theme.dart';
 import '../trace/signal_lanes.dart';
 import 'activity_risk_card.dart';
@@ -45,6 +46,7 @@ class _DataPageState extends State<DataPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _active = TabScope.activeOf(context);
     final s = AppScope.of(context);
     if (!identical(s, _services)) {
       _c?.removeListener(_onChanged);
@@ -62,11 +64,13 @@ class _DataPageState extends State<DataPage> {
     super.dispose();
   }
 
-  /// Another tab is on top: its widgets are kept alive but need no refreshing.
+  /// While another tab is on top this page is kept alive but does no work.
   void _tick() {
-    if (!mounted || !TickerMode.valuesOf(context).enabled) return;
+    if (!mounted || !_active) return;
     _c?.tick();
   }
+
+  bool _active = true;
 
   /// An expanded lane is always landscape; otherwise the phone may be turned either way.
   void _onChanged() {

@@ -21,7 +21,9 @@ import '../report/report_builder.dart';
 import '../report/report_exporter.dart';
 import '../report/report_fonts.dart';
 import '../report/report_fonts_assets.dart';
+import '../report/pdf_previewer.dart';
 import '../report/report_models.dart';
+import '../report/report_settings.dart';
 import '../report/report_selection.dart';
 import '../report/share_plus_sharer.dart';
 
@@ -62,12 +64,13 @@ class AppServices {
     DatasetReader? reader,
     FileSharer sharer = const SharePlusFileSharer(),
     DatasetPicker picker = const FilePickerDatasetPicker(),
+    PdfPreviewer previewer = const PrintingPdfPreviewer(),
     ReportFonts? fonts,
     DateTime Function()? now,
-  }) : this._(client ?? NeoClient(), dataDir, reader, sharer, picker, fonts, now ?? DateTime.now);
+  }) : this._(client ?? NeoClient(), dataDir, reader, sharer, picker, previewer, fonts, now ?? DateTime.now);
 
   // One client for everything: the tracker and the feed must watch the same one.
-  AppServices._(this.client, this.dataDir, this._readerOverride, this._sharer, this._picker, this._fonts, this._now)
+  AppServices._(this.client, this.dataDir, this._readerOverride, this._sharer, this._picker, this.previewer, this._fonts, this._now)
       : live = LiveSignalBuffer(),
         status = DeviceStatusTracker(client),
         library = dataDir == null ? null : DatasetLibrary(Directory('${dataDir.path}/datasets')) {
@@ -257,6 +260,25 @@ class AppServices {
       days: days,
     );
   }
+
+  /// Shows a finished report's pages inside the app before it is shared.
+  final PdfPreviewer previewer;
+
+  ReportSettings? _reportSettings;
+
+  /// The patient label and the other settings that outlast a run of the app. Read
+  /// once from the app's storage; throws where the platform has none.
+  Future<ReportSettings> reportSettings() async {
+    final existing = _reportSettings;
+    if (existing != null) return existing;
+    final s = ReportSettings(File('${_requireDataDir().path}/report_settings.json'));
+    await s.load();
+    return _reportSettings = s;
+  }
+
+  /// Opens the share sheet with the files of a report that was already written.
+  Future<void> shareReport(ExportedReport report, {String? subject}) =>
+      _sharer.share([report.pdf, report.csvZip], subject: subject ?? 'EEG review report');
 
   /// One click: build the report, write the PDF and CSV zip, and (by default)
   /// open the share sheet.

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app/app_scope.dart';
 import '../data/data_page.dart';
 import '../orientation.dart';
-import '../pages/placeholder_page.dart';
+import '../report/report_page.dart';
+import 'tab_scope.dart';
 import '../review/review_page.dart';
 import '../widgets/status_strip.dart';
 
@@ -63,10 +64,15 @@ class _AppShellState extends State<AppShell> {
         [
           const DataPage(),
           const ReviewPage(),
-          PlaceholderPage(title: AppShell.tabs[2].label, icon: AppShell.tabs[2].icon),
+          const ReportPage(),
         ];
     final landscape = MediaQuery.orientationOf(context) == Orientation.landscape && _tab == 0;
-    final body = IndexedStack(index: _tab, children: pages);
+    final body = IndexedStack(
+      index: _tab,
+      children: [
+        for (var i = 0; i < pages.length; i++) TabScope(index: i, selected: _tab, child: pages[i]),
+      ],
+    );
     if (landscape) {
       // The lanes get the whole screen; the page carries its own way home.
       return Scaffold(body: SafeArea(child: body));

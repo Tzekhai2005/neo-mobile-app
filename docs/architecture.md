@@ -119,6 +119,39 @@ it is tested on its own; `ReviewController` is the state of the page.
 * The generator's ground-truth labels in the synthetic recording are never shown: they are not
   detections.
 
+## The Report page (`report/` and `ui/report/`)
+
+One tap to a report you have looked at before it leaves the phone.
+
+* **Choosing.** Three presets: *Confirmed* (every confirmed event, or the top unreviewed
+  candidates when nothing is confirmed yet, and the page says so), *All candidates* (every
+  automatic event not dismissed) and *Markers* (patient presses). A tick box on every event,
+  grouped by band (High, Medium, Low) and the patient markers, each group with its own box that
+  is empty, half or full. A choice that is exactly a preset is shown as that preset; one made by
+  hand is not. The fallback only ever counts as *Confirmed*, even if it happens to hold the same
+  events as *All candidates*.
+* **Days.** Pick the first and last day to cover (consecutive days, see
+  `docs/report-and-quality.md`). A choice that was a preset follows the new days; a hand-made one
+  keeps its ticks but only those inside the days count.
+* **The patient label.** Remembered between sessions in `report_settings.json` and editable.
+  Typing applies to the next report at once; saving it to storage waits for a pause in the typing,
+  and happens quietly (it announces nothing) so it is safe as a page goes away.
+* **Create, preview, share.** Create writes the PDF and the CSV zip, then pictures of the PDF's
+  pages. The pictures come from the platform's own PDF renderer through the `printing` package,
+  behind a `PdfPreviewer` interface so tests need no phone. Only the first 24 pages are pictured,
+  and the page says so if there are more; if the renderer fails, the report is still saved and can
+  be shared. Share opens the phone's share sheet with exactly the two files that were written.
+  Nothing is shared until Share is pressed.
+* The Report page re-reads the decisions each time its tab comes to the front, so what was
+  confirmed on the Review page is there; a choice made by hand is left alone.
+
+## Tabs and what they do when hidden (`ui/shell/tab_scope.dart`)
+
+The three tabs are kept alive so each keeps its place, which means the framework does not tell a
+page that it is hidden. `TabScope` does. The Data page does no work while another tab is on top
+(it stops redrawing the live signal), and the Report page uses it to know when to re-read the
+decisions.
+
 ## One owner: `AppServices`
 
 `AppServices` (`lib/app/app_services.dart`) is created once in `main()` and lives as long

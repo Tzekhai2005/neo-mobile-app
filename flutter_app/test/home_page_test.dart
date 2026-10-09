@@ -208,7 +208,7 @@ void main() {
       expect(tester(t).selectedTab, 2);
       expect(find.text('Neo-4F2A'), findsOneWidget, reason: 'the strip names the device');
       expect(find.text('Contact'), findsOneWidget);
-      expect(find.text('This page is built in a later step.'), findsWidgets);
+      expect(find.byKey(const ValueKey('create-report')), findsOneWidget, reason: 'the Report page');
     });
 
     testWidgets('the tabs switch pages', (t) async {
