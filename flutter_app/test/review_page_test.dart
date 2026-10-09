@@ -11,6 +11,7 @@ import 'package:neo_companion/protocol/neo_client.dart';
 import 'package:neo_companion/report/report_exporter.dart';
 import 'package:neo_companion/ui/orientation.dart' as orientation;
 import 'package:neo_companion/ui/review/review_page.dart';
+import 'package:neo_companion/ui/review/review_widgets.dart';
 import 'package:neo_companion/ui/shell/app_shell.dart';
 import 'package:neo_companion/ui/shell/tab_scope.dart';
 import 'package:neo_companion/ui/theme/app_theme.dart';
@@ -68,17 +69,18 @@ void main() {
       final s = await services(t, mini);
       await open(t, s);
       expect(find.byKey(const ValueKey('timeline')), findsOneWidget);
-      expect(find.text('Patient markers (1)'), findsOneWidget);
-      expect(find.text('Candidates, highest score first (4)'), findsOneWidget);
+      expect(find.text('Marked by you (1)'), findsOneWidget);
+      expect(find.text('Events, highest score first (4)'), findsOneWidget);
       expect(find.byKey(const ValueKey('progress')), findsOneWidget);
       expect(find.text('0 of 5 reviewed'), findsOneWidget);
       expect(find.byKey(const ValueKey('range-label')), findsOneWidget);
     });
 
-    testWidgets('a score is shown as a band, never as a number', (t) async {
+    testWidgets('a score is shown as a kind of event, never as a number', (t) async {
       final s = await services(t, mini);
       await open(t, s);
-      expect(find.text('High'), findsWidgets);
+      expect(find.text('Possible seizure'), findsWidgets);
+      expect(find.text('High'), findsNothing);
       expect(find.textContaining(RegExp(r'0\.\d\d')), findsNothing);
     });
 
@@ -119,12 +121,121 @@ void main() {
     });
   });
 
+  /// The status filter lives in the sheet behind the filter icon.
+  Future<void> chooseStatus(WidgetTester t, String name) async {
+    await t.tap(find.byKey(const ValueKey('filter')));
+    await settle(t);
+    await t.tap(find.byKey(ValueKey('filter-$name')));
+    await settle(t);
+    await t.tapAt(const Offset(10, 10)); // closes the sheet
+    await settle(t);
+  }
+
+  group('the History header and views', () {
+    testWidgets('is titled History, with Day, Week and Month, search and filter', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      expect(find.text('History'), findsOneWidget);
+      for (final k in ['mode-oneDay', 'mode-week', 'mode-month', 'search', 'filter']) {
+        expect(find.byKey(ValueKey(k)), findsOneWidget, reason: k);
+      }
+      expect(find.text('Day'), findsOneWidget);
+      expect(find.text('Week'), findsOneWidget);
+      expect(find.text('Month'), findsOneWidget);
+    });
+
+    testWidgets('the three tiles count each kind, and tapping one shows only that kind', (t) async {
+      final s = await services(t, demo);
+      await open(t, s);
+      await t.tap(find.byKey(const ValueKey('mode-week')));
+      await settle(t);
+      final events = s.reviewEvents().where((e) => e.event.source == EventSource.auto);
+      int n(bool Function(double) f) => events.where((e) => f(e.event.confidence!)).length;
+      Finder tileCount(String k, int count) =>
+          find.descendant(of: find.byKey(ValueKey(k)), matching: find.text('$count'));
+      expect(tileCount('category-possibleSeizure', n((c) => c >= 0.8)), findsOneWidget);
+      expect(tileCount('category-unusual', n((c) => c >= 0.4 && c < 0.8)), findsOneWidget);
+      expect(tileCount('category-normal', n((c) => c < 0.4)), findsOneWidget);
+
+      await t.tap(find.byKey(const ValueKey('category-possibleSeizure')));
+      await settle(t);
+      expect(find.byKey(const ValueKey('active-category')), findsOneWidget);
+      final heading = find.byWidgetPredicate((w) => w is Text && (w.data ?? '').startsWith('Events, highest'));
+      await t.scrollUntilVisible(heading, 300,
+          scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
+      expect(t.widget<Text>(heading).data, 'Events, highest score first (${n((c) => c >= 0.8)})');
+
+      await t.tap(find.byKey(const ValueKey('category-possibleSeizure'))); // again: back to everything
+      await settle(t);
+      expect(find.byKey(const ValueKey('active-category')), findsNothing);
+    });
+
+    testWidgets('search narrows the list, and its chip can be removed', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      await t.tap(find.byKey(const ValueKey('search')));
+      await settle(t);
+      await t.enterText(find.byKey(const ValueKey('search-field')), 'zzzz');
+      await settle(t);
+      expect(find.byKey(const ValueKey('empty-list')), findsOneWidget);
+      expect(find.byKey(const ValueKey('active-query')), findsOneWidget);
+      await t.tap(find.descendant(of: find.byKey(const ValueKey('active-query')), matching: find.byIcon(Icons.clear)));
+      await settle(t);
+      expect(find.byKey(const ValueKey('empty-list')), findsNothing);
+    });
+
+    testWidgets('the filter sheet orders the list, and shows a dot while something is set', (t) async {
+      final s = await services(t, demo);
+      await open(t, s);
+      expect(find.textContaining('Events, highest score first'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('filter')));
+      await settle(t);
+      await t.tap(find.byKey(const ValueKey('sort-newest')));
+      await settle(t);
+      await t.tapAt(const Offset(10, 10));
+      await settle(t);
+      expect(find.textContaining('Events, newest first'), findsOneWidget);
+    });
+
+    testWidgets('each row has a small signal picture, except a patient press', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      final auto = candidates(s).first;
+      expect(find.descendant(of: row(auto.event.id), matching: find.byType(EventSpark)), findsOneWidget);
+      final marker = s.reviewEvents().firstWhere((e) => e.event.source == EventSource.patientButton);
+      expect(find.descendant(of: row(marker.event.id), matching: find.byType(EventSpark)), findsNothing);
+    });
+
+    testWidgets('a month on the real demo opens and shows a timeline', (t) async {
+      final s = await services(t, 'assets/demo_recording');
+      await open(t, s);
+      await t.tap(find.byKey(const ValueKey('mode-month')));
+      await settle(t, 200);
+      expect(find.text('Mon 5 Oct to Sun 1 Nov'), findsOneWidget);
+      expect(find.byKey(const ValueKey('day-bars')), findsOneWidget, reason: 'a month is one bar a day');
+      expect(find.byKey(const ValueKey('timeline')), findsNothing);
+      expect(find.byKey(const ValueKey('show-signal')), findsNothing, reason: 'the signal needs a day or three');
+    });
+
+    testWidgets('tapping a day in the bars opens that day', (t) async {
+      final s = await services(t, 'assets/demo_recording');
+      await open(t, s);
+      await t.tap(find.byKey(const ValueKey('mode-week')));
+      await settle(t, 200);
+      final box = t.getRect(find.byKey(const ValueKey('day-bars')));
+      await t.tapAt(Offset(box.left + box.width * (2.5 / 7), box.center.dy)); // the third day
+      await settle(t, 200);
+      expect(find.text('Wed 7 Oct'), findsOneWidget);
+      expect(find.byKey(const ValueKey('timeline')), findsOneWidget);
+      expect(find.byKey(const ValueKey('show-signal')), findsOneWidget);
+    });
+  });
+
   group('the list and its filters', () {
     testWidgets('a filter with nothing in it says so', (t) async {
       final s = await services(t, mini);
       await open(t, s);
-      await t.tap(find.byKey(const ValueKey('filter-confirmed')));
-      await settle(t);
+      await chooseStatus(t, 'confirmed');
       expect(find.byKey(const ValueKey('empty-list')), findsOneWidget);
       expect(find.textContaining('No events match this filter'), findsOneWidget);
     });
@@ -132,8 +243,7 @@ void main() {
     testWidgets('Unreviewed shows everything at the start, and an event leaves it once decided', (t) async {
       final s = await services(t, mini);
       await open(t, s);
-      await t.tap(find.byKey(const ValueKey('filter-unreviewed')));
-      await settle(t);
+      await chooseStatus(t, 'unreviewed');
       final first = candidates(s).first.event.id;
       expect(row(first), findsOneWidget);
       await t.tap(row(first));
@@ -143,8 +253,7 @@ void main() {
       await t.tap(find.byKey(const ValueKey('close-sheet')));
       await settle(t);
       expect(row(first), findsNothing, reason: 'it is confirmed now, so no longer unreviewed');
-      await t.tap(find.byKey(const ValueKey('filter-confirmed')));
-      await settle(t);
+      await chooseStatus(t, 'confirmed');
       expect(row(first), findsOneWidget);
     });
   });
@@ -428,26 +537,26 @@ void main() {
     testWidgets('the 3 days switch shows all of it, with the date on every row', (t) async {
       final s = await services(t, demo);
       await open(t, s);
-      await t.tap(find.byKey(const ValueKey('mode-threeDays')));
+      await t.tap(find.byKey(const ValueKey('mode-week')));
       await settle(t);
       expect(find.text('Mon 5 Oct to Wed 7 Oct'), findsOneWidget);
-      expect(find.text('Patient markers (9)'), findsOneWidget);
+      expect(find.text('Marked by you (9)'), findsOneWidget);
       // the candidates start below the nine markers, so scroll down to the heading
-      final heading = find.byWidgetPredicate((w) => w is Text && (w.data ?? '').startsWith('Candidates, highest score first'));
+      final heading = find.byWidgetPredicate((w) => w is Text && (w.data ?? '').startsWith('Events, highest score first'));
       await t.scrollUntilVisible(
         heading,
         300,
         scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first,
       );
-      expect(t.widget<Text>(heading).data, 'Candidates, highest score first (110)');
-      expect(find.textContaining('Mon 5 Oct ·'), findsWidgets, reason: 'with several days a time needs its date');
+      expect(t.widget<Text>(heading).data, 'Events, highest score first (110)');
+      expect(find.textContaining(RegExp(r'(Mon|Tue|Wed) \d+ Oct ·')), findsWidgets, reason: 'with several days a time needs its date');
       expect(t.widget<IconButton>(find.byKey(const ValueKey('later'))).onPressed, isNull);
     });
 
     testWidgets('paging changes the list to that day\'s events', (t) async {
       final s = await services(t, demo);
       await open(t, s);
-      final day1 = find.textContaining('Candidates, highest score first');
+      final day1 = find.textContaining('Events, highest score first');
       final first = (t.widget<Text>(day1)).data!;
       await t.tap(find.byKey(const ValueKey('later')));
       await settle(t);
@@ -457,7 +566,7 @@ void main() {
     testWidgets('a tap on a mark that stands for several events lists them, and a choice opens one', (t) async {
       final s = await services(t, demo);
       await open(t, s);
-      await t.tap(find.byKey(const ValueKey('mode-threeDays')));
+      await t.tap(find.byKey(const ValueKey('mode-week')));
       await settle(t);
       final box = t.getRect(find.byKey(const ValueKey('timeline')));
       // sweep along the plot until a tap lands on a counted mark
@@ -489,7 +598,7 @@ void main() {
     testWidgets('stepping with Next scrolls the list to the event, even far down', (t) async {
       final s = await services(t, demo);
       await open(t, s);
-      await t.tap(find.byKey(const ValueKey('mode-threeDays')));
+      await t.tap(find.byKey(const ValueKey('mode-week')));
       await settle(t);
       await t.tap(row(candidates(s).first.event.id).evaluate().isNotEmpty ? row(candidates(s).first.event.id) : find.byType(InkWell).at(10));
       await settle(t, 150);

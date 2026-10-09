@@ -92,26 +92,34 @@ into what is drawn a few times a second: the window (5, 10 or 15 s), the EEG sca
   `kShowExperimentalRisk` removes the whole readout, and an empty `kRiskExperimentalNote`
   hides only the small print.
 
-## The Review page (`review/` and `ui/review/`)
+## The History page (`review/` and `ui/review/`)
 
 Going through the events a recording holds. The logic is in `review/` and has no widgets, so
 it is tested on its own; `ReviewController` is the state of the page.
 
-* **Days.** One day or three, paged a day at a time (a day is 24 hours from the start of the
-  recording, as in the report). Pinch zooms down to ten minutes, dragging slides, and a Reset
+* **Days.** Day, Week (7 days) or Month (28 days, or the whole recording if shorter), paged by
+  that many days (a day is 24 hours from the start of the recording, as in the report).
+  Four days or more are drawn as one stacked bar per day (`DailyBars`; tap a day to open it);
+  one to three days are the timeline below. Pinch zooms down to ten minutes, dragging slides, and a Reset
   zoom button returns. There is no double-tap: it would make every single tap wait to see
   whether a second one follows.
 * **The timeline.** One mark per event at its real time, at least 4 px wide so a ten second
   event can be seen and tapped, and as tall as its score band (High tallest). Marks that would
   touch at the current zoom become one with a count; tapping it lists them. Patient button
-  presses are a row of diamonds above. Hollow amber is unreviewed, green confirmed, grey
-  dismissed. Red bands are stretches where the signal quality was too poor to use. "Show
+  presses are a row of diamonds above. A mark is coloured by its kind; hollow is unreviewed,
+  solid confirmed, faded dismissed. Red bands are stretches where the signal quality was too poor to use. "Show
   signal" puts the EEG envelope and the movement behind the marks; it is off by default,
   because a large swing in the signal is not the same as an event (blinks, chewing and a loose
   electrode make them too).
-* **The list.** Patient markers are pinned in their own group, then the candidates ranked by
-  score (ties in time order). A score is shown only as a band, High from 0.8, Medium from 0.4.
-  The list follows the days on show; the "reviewed" progress counts every event.
+* **Kinds.** The three score bands are shown as Possible seizure (from 0.8), Unusual activity
+  (from 0.4) and Normal activity (the rest); a patient press is "Marked by you". The detector's
+  score is never shown as a number. The report still says High, Medium and Low.
+* **The list.** Marked by you is pinned in its own group, then the events in the chosen order
+  (highest score, newest, or oldest first). Tiles above count each kind and filter the list;
+  search reads the kind, status, date, time and note; the filter sheet picks the status and the
+  order. Each row has a small picture of its first EEG channel at one scale for all
+  (`review/event_spark.dart`). The list follows the days on show; the "reviewed" progress counts
+  every event.
 * **An event.** A half-screen sheet that leaves the timeline above it, with the selected mark
   outlined: where it is in the list, when it happened, the stored 40 s of EEG, accelerometer
   and gyro on the shared signal view with the event's stretch shaded, a note, and Confirm and

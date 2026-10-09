@@ -123,7 +123,7 @@ String dateTimeLabel(DateTime local) =>
 /// six hours, a day) that falls in [visible], with the date at each midnight. The
 /// step is the smallest that gives no more than [maxTicks] labels.
 List<TimeAxisTick> axisTicks(TimeRange visible, RecordingInfo info, {int maxTicks = 7}) {
-  const steps = [60, 300, 900, 1800, 3600, 3 * 3600, 6 * 3600, 12 * 3600, 86400];
+  const steps = [60, 300, 900, 1800, 3600, 3 * 3600, 6 * 3600, 12 * 3600, 86400, 2 * 86400, 7 * 86400];
   final len = visible.lengthSec;
   if (len <= 0) return const [];
   final step = steps.firstWhere((s) => len / s <= maxTicks, orElse: () => steps.last);
@@ -178,4 +178,20 @@ class TimelineSnapshot {
   });
 
   double xOf(double sec, double width) => (sec - visible.startSec) / visible.lengthSec * width;
+}
+
+/// How many events of each kind a day holds (a day is a 24-hour block from the start
+/// of the recording), for the daily bars of a week or a month.
+class DayTally {
+  final int day; // 0-based
+  final double startSec;
+  final Map<EventCategory, int> counts;
+
+  const DayTally(this.day, this.startSec, this.counts);
+
+  /// Automatic events only: patient presses are shown apart.
+  int get automatic =>
+      (counts[EventCategory.possibleSeizure] ?? 0) +
+      (counts[EventCategory.unusual] ?? 0) +
+      (counts[EventCategory.normal] ?? 0);
 }

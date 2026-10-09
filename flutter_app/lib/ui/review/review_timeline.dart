@@ -7,7 +7,10 @@ import '../../data/recording_source.dart';
 import '../../data/review_event.dart';
 import '../../review/review_controller.dart';
 import '../../review/timeline_model.dart';
+import '../../data/score_band.dart';
+import '../../review/review_models.dart';
 import '../theme/app_theme.dart';
+import 'review_widgets.dart' show categoryColor;
 
 /// The compressed timeline of the days on show: one mark per event at its real time,
 /// as tall as its score band, with the patient's button presses in a row above.
@@ -138,25 +141,41 @@ class _TimelinePainter extends CustomPainter {
     // Stretches where the signal was too poor to use.
     for (final r in snap.poor) {
       final x0 = snap.xOf(r.startSec, w), x1 = snap.xOf(r.endSec, w);
-      canvas.drawRect(Rect.fromLTRB(x0, 0, math.max(x1, x0 + 1.5), _plotBottom + 4), Paint()..color = AppColors.danger.withValues(alpha: 0.12));
+      canvas.drawRect(Rect.fromLTRB(x0, 0, math.max(x1, x0 + 1.5), _plotBottom + 4),
+          Paint()..color = AppColors.danger.withValues(alpha: 0.12));
     }
 
     // Day boundaries.
     for (final t in snap.ticks.where((t) => t.dayStart)) {
       final x = snap.xOf(t.sec, w);
-      canvas.drawLine(Offset(x, 0), Offset(x, _plotBottom + 4), Paint()..color = AppColors.border..strokeWidth = 1);
+      canvas.drawLine(
+          Offset(x, 0),
+          Offset(x, _plotBottom + 4),
+          Paint()
+            ..color = AppColors.border
+            ..strokeWidth = 1);
     }
 
     if (showSignal) _paintSignal(canvas, w);
 
     // Base line the marks stand on.
-    canvas.drawLine(Offset(0, _plotBottom), Offset(w, _plotBottom), Paint()..color = AppColors.border..strokeWidth = 1);
+    canvas.drawLine(
+        Offset(0, _plotBottom),
+        Offset(w, _plotBottom),
+        Paint()
+          ..color = AppColors.border
+          ..strokeWidth = 1);
 
     // The selected event's start.
     final s = selectedStartSec;
     if (s != null && s >= snap.visible.startSec && s <= snap.visible.endSec) {
       final x = snap.xOf(s, w);
-      canvas.drawLine(Offset(x, 4), Offset(x, _plotBottom), Paint()..color = AppColors.accent..strokeWidth = 1.4);
+      canvas.drawLine(
+          Offset(x, 4),
+          Offset(x, _plotBottom),
+          Paint()
+            ..color = AppColors.accent
+            ..strokeWidth = 1.4);
     }
 
     for (final c in snap.bars) {
@@ -166,7 +185,12 @@ class _TimelinePainter extends CustomPainter {
       _paintMarker(canvas, c);
     }
     canvas.restore();
-    canvas.drawRRect(track, Paint()..color = AppColors.border..style = PaintingStyle.stroke..strokeWidth = 1);
+    canvas.drawRRect(
+        track,
+        Paint()
+          ..color = AppColors.border
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1);
 
     // Time labels.
     for (final t in snap.ticks) {
@@ -207,7 +231,8 @@ class _TimelinePainter extends CustomPainter {
     for (var i = 0; i < ov.count; i++) {
       final x0 = snap.xOf(ov.startSec + i * ov.binSec, w), x1 = snap.xOf(ov.startSec + (i + 1) * ov.binSec, w);
       final h = ov.activity[i].clamp(0.0, 1.0) * (_plotBottom - _plotTop) * 0.3;
-      canvas.drawRect(Rect.fromLTRB(x0, _plotBottom - h, math.max(x1, x0 + 0.8), _plotBottom), Paint()..color = AppColors.axis[1].withValues(alpha: 0.55));
+      canvas.drawRect(Rect.fromLTRB(x0, _plotBottom - h, math.max(x1, x0 + 0.8), _plotBottom),
+          Paint()..color = AppColors.axis[1].withValues(alpha: 0.55));
     }
   }
 
@@ -230,13 +255,29 @@ class _TimelinePainter extends CustomPainter {
   void _paintBar(Canvas canvas, TimelineCluster c) {
     final room = _plotBottom - _plotTop;
     final h = math.max(10.0, barFraction(c.topBand) * room);
-    final rect = RRect.fromRectAndRadius(Rect.fromLTRB(c.left, _plotBottom - h, c.right, _plotBottom), const Radius.circular(2));
-    final color = _color(c.status);
+    final rect =
+        RRect.fromRectAndRadius(Rect.fromLTRB(c.left, _plotBottom - h, c.right, _plotBottom), const Radius.circular(2));
+    final color = categoryColor(categoryOfBand(c.topBand ?? ScoreBand.low));
     final selected = selectedId != null && c.contains(selectedId!);
-    canvas.drawRRect(rect, Paint()..color = c.status == ReviewStatus.confirmed ? color : color.withValues(alpha: c.status == ReviewStatus.dismissed ? 0.5 : 0.30));
-    canvas.drawRRect(rect, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 1.3);
+    canvas.drawRRect(
+        rect,
+        Paint()
+          ..color = c.status == ReviewStatus.confirmed
+              ? color
+              : color.withValues(alpha: c.status == ReviewStatus.dismissed ? 0.5 : 0.30));
+    canvas.drawRRect(
+        rect,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3);
     if (selected) {
-      canvas.drawRRect(rect.inflate(2.5), Paint()..color = AppColors.accent..style = PaintingStyle.stroke..strokeWidth = 2);
+      canvas.drawRRect(
+          rect.inflate(2.5),
+          Paint()
+            ..color = AppColors.accent
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2);
     }
     if (!c.isSingle) _count(canvas, Offset(c.center, _plotBottom - h - 11), c.events.length);
   }
@@ -251,9 +292,20 @@ class _TimelinePainter extends CustomPainter {
       ..lineTo(cx - 8, cy)
       ..close();
     canvas.drawPath(path, Paint()..color = c.status == ReviewStatus.candidate ? color.withValues(alpha: 0.2) : color);
-    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5);
     if (selectedId != null && c.contains(selectedId!)) {
-      canvas.drawCircle(Offset(cx, cy), 12, Paint()..color = AppColors.accent..style = PaintingStyle.stroke..strokeWidth = 2);
+      canvas.drawCircle(
+          Offset(cx, cy),
+          12,
+          Paint()
+            ..color = AppColors.accent
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2);
     }
     if (!c.isSingle) _count(canvas, Offset(cx + 10, cy - 8), c.events.length);
   }
@@ -266,17 +318,112 @@ class _TimelinePainter extends CustomPainter {
   }
 
   TextPainter _label(String s, {bool bold = false, Color color = AppColors.textMuted}) => TextPainter(
-        text: TextSpan(text: s, style: base.copyWith(fontSize: 11, color: color, fontWeight: bold ? FontWeight.w600 : FontWeight.w400)),
+        text: TextSpan(
+            text: s,
+            style: base.copyWith(fontSize: 11, color: color, fontWeight: bold ? FontWeight.w600 : FontWeight.w400)),
         textDirection: TextDirection.ltr,
       )..layout();
 
-  Color _color(ReviewStatus s) => switch (s) {
-        ReviewStatus.candidate => AppColors.warning,
-        ReviewStatus.confirmed => AppColors.success,
-        ReviewStatus.dismissed => AppColors.textMuted,
-      };
-
   @override
   bool shouldRepaint(covariant _TimelinePainter old) =>
-      !identical(old.snap, snap) || old.showSignal != showSignal || old.selectedId != selectedId || old.selectedStartSec != selectedStartSec;
+      !identical(old.snap, snap) ||
+      old.showSignal != showSignal ||
+      old.selectedId != selectedId ||
+      old.selectedStartSec != selectedStartSec;
+}
+
+/// One bar per day for a week or a month: how many events of each kind the day held,
+/// stacked, the possible seizures at the bottom. Tapping a day opens it.
+class DailyBars extends StatelessWidget {
+  final ReviewController controller;
+  const DailyBars({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final tallies = controller.dayTallies;
+    return LayoutBuilder(builder: (context, box) {
+      final width = box.maxWidth;
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (d) {
+          final i = (d.localPosition.dx / width * tallies.length).floor().clamp(0, tallies.length - 1);
+          controller.openDay(tallies[i].day);
+        },
+        child: CustomPaint(
+          key: const ValueKey('day-bars'),
+          size: Size(width, ReviewTimeline.height),
+          painter: _DailyBarsPainter(tallies, controller.info, DefaultTextStyle.of(context).style),
+        ),
+      );
+    });
+  }
+}
+
+class _DailyBarsPainter extends CustomPainter {
+  final List<DayTally> tallies;
+  final dynamic info;
+  final TextStyle base;
+  _DailyBarsPainter(this.tallies, this.info, this.base);
+
+  static const _top = 14.0;
+  static const _bottom = 140.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final track = RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, _bottom + 4), const Radius.circular(12));
+    canvas.drawRRect(track, Paint()..color = AppColors.surface);
+    canvas.drawRRect(
+        track,
+        Paint()
+          ..color = AppColors.border
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1);
+    final n = tallies.length;
+    if (n == 0) return;
+    final most = math.max(1, tallies.map((t) => t.automatic).reduce(math.max));
+    final slot = w / n;
+    final barW = math.max(3.0, slot * 0.64);
+    final room = _bottom - _top;
+    // Stacked from the bottom: seizures, unusual, normal.
+    const order = [EventCategory.possibleSeizure, EventCategory.unusual, EventCategory.normal];
+    for (var i = 0; i < n; i++) {
+      final t = tallies[i];
+      final x = i * slot + (slot - barW) / 2;
+      var y = _bottom;
+      for (final c in order) {
+        final h = (t.counts[c] ?? 0) / most * room;
+        if (h <= 0) continue;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromLTRB(x, y - h, x + barW, y), const Radius.circular(1.5)),
+          Paint()..color = categoryColor(c),
+        );
+        y -= h;
+      }
+      final marked = t.counts[EventCategory.marked] ?? 0;
+      if (marked > 0) {
+        canvas.drawCircle(Offset(x + barW / 2, _top - 5), 3, Paint()..color = categoryColor(EventCategory.marked));
+      }
+    }
+    canvas.drawLine(Offset(0, _bottom), Offset(w, _bottom), Paint()..color = AppColors.border);
+    // Dates: every day when there are few, otherwise the first of each week.
+    final every = n <= 8 ? 1 : 7;
+    for (var i = 0; i < n; i += every) {
+      final local = info.localTimeAt(tallies[i].startSec) as DateTime;
+      final label = n <= 8 ? _short(local) : dateLabel(local);
+      final tp = TextPainter(
+        text: TextSpan(text: label, style: base.copyWith(fontSize: 11, color: AppColors.textMuted)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final cx = i * slot + slot / 2;
+      final left = (cx - tp.width / 2).clamp(0.0, math.max(0.0, w - tp.width)).toDouble();
+      tp.paint(canvas, Offset(left, _bottom + 10));
+    }
+  }
+
+  /// "Mon 5".
+  static String _short(DateTime d) => dateLabel(d).split(' ').take(2).join(' ');
+
+  @override
+  bool shouldRepaint(covariant _DailyBarsPainter old) => old.tallies != tallies;
 }

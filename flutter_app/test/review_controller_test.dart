@@ -11,6 +11,7 @@ import 'package:neo_companion/review/review_models.dart';
 
 const mini = 'test/fixtures/mini_recording'; // one hour, 5 events (one patient press)
 const demo = 'test/fixtures/demo_3day'; // three days, 119 events
+const month = 'assets/demo_recording'; // the app's own demo: 28 days, 420 events
 
 class _NoShare implements FileSharer {
   @override
@@ -107,7 +108,7 @@ void main() {
 
     test('three days on a three-day recording is all of it, with nowhere to page', () async {
       final c = await loaded(demo);
-      c.setMode(RangeMode.threeDays);
+      c.setMode(RangeMode.week);
       expect(c.bounds.startSec, 0);
       expect(c.bounds.endSec, 259200);
       expect(c.canPage(1), isFalse);
@@ -118,7 +119,7 @@ void main() {
       final c = await loaded(demo);
       c.pageDays(1);
       c.pageDays(1); // day three
-      c.setMode(RangeMode.threeDays);
+      c.setMode(RangeMode.week);
       expect(c.firstDay, 0, reason: 'three days must fit inside three');
       c.setMode(RangeMode.oneDay);
       expect(c.windowDays, 1);
@@ -127,7 +128,7 @@ void main() {
     test('a recording shorter than a day is one range whatever the switch says', () async {
       final c = await loaded(mini);
       expect(c.dayCount, 1);
-      c.setMode(RangeMode.threeDays);
+      c.setMode(RangeMode.week);
       expect(c.windowDays, 1);
       expect(c.bounds.endSec, 3600, reason: 'only as long as the recording');
       expect(c.canPage(1), isFalse);
@@ -154,13 +155,13 @@ void main() {
         total += c.lists.ordered.length;
       }
       expect(total, 119);
-      c.setMode(RangeMode.threeDays);
+      c.setMode(RangeMode.week);
       expect(c.lists.ordered.length, 119);
     });
 
     test('markers first, then candidates by score', () async {
       final c = await loaded(demo);
-      c.setMode(RangeMode.threeDays);
+      c.setMode(RangeMode.week);
       final l = c.lists;
       expect(l.markers.length, 9);
       expect(l.candidates.length, 110);
@@ -438,7 +439,7 @@ void main() {
   group('what the timeline draws', () {
     test('marks for the automatic events, a row for the patient markers, labels and poor stretches', () async {
       final c = await loaded(demo);
-      c.setMode(RangeMode.threeDays);
+      c.setMode(RangeMode.week);
       final s = c.snapshotFor(360);
       final autos = s.bars.fold<int>(0, (n, k) => n + k.events.length);
       final marks = s.markers.fold<int>(0, (n, k) => n + k.events.length);
@@ -452,7 +453,7 @@ void main() {
 
     test('zoomed in, only what is in view, and fewer events share a mark', () async {
       final c = await loaded(demo);
-      c.setMode(RangeMode.threeDays);
+      c.setMode(RangeMode.week);
       final wide = c.snapshotFor(360);
       c.zoom(30, 0.5);
       final tight = c.snapshotFor(360);
@@ -506,6 +507,221 @@ void main() {
         c.windowFor(id);
       }
       expect(identical(c.windowFor(ids.first), first), isFalse, reason: 'the oldest was let go');
+    });
+  });
+
+  group('week and month', () {
+    test('a week is seven days and the arrows move a whole week', () async {
+      final c = await loaded(month);
+      expect(c.dayCount, 28);
+      c.setMode(RangeMode.week);
+      expect(c.windowDays, 7);
+      expect(c.rangeLabel, 'Mon 5 Oct to Sun 11 Oct');
+      expect(c.canPage(-1), isFalse);
+      c.pageDays(1);
+      expect(c.firstDay, 7);
+      expect(c.rangeLabel, 'Mon 12 Oct to Sun 18 Oct');
+      c.pageDays(1);
+      c.pageDays(1);
+      expect(c.firstDay, 21);
+      expect(c.canPage(1), isFalse);
+    });
+
+    test('a month is the whole 28 days, with nowhere to page', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.month);
+      expect(c.windowDays, 28);
+      expect(c.bounds.endSec, 28 * 86400);
+      expect(c.canPage(1), isFalse);
+      expect(c.lists.ordered.length, 420);
+    });
+
+    test('the weeks add up to the whole recording', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.week);
+      var total = 0;
+      for (var w = 0; w < 4; w++) {
+        if (w > 0) c.pageDays(1);
+        total += c.lists.ordered.length;
+      }
+      expect(total, 420);
+    });
+
+    test('a week and a month are daily bars; one to three days stay a timeline', () async {
+      final c = await loaded(month);
+      expect(c.showsDailyBars, isFalse);
+      c.setMode(RangeMode.week);
+      expect(c.showsDailyBars, isTrue);
+      c.setMode(RangeMode.month);
+      expect(c.showsDailyBars, isTrue);
+      final d3 = await loaded(demo);
+      d3.setMode(RangeMode.week);
+      expect(d3.windowDays, 3);
+      expect(d3.showsDailyBars, isFalse);
+    });
+
+    test('the day tallies count every event once, by kind', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.month);
+      final t = c.dayTallies;
+      expect(t.length, 28);
+      expect(t.first.day, 0);
+      expect(t.last.day, 27);
+      var all = 0;
+      for (final d in t) {
+        all += d.counts.values.fold<int>(0, (a, b) => a + b);
+        expect(d.automatic + d.counts[EventCategory.marked]!, d.counts.values.fold<int>(0, (a, b) => a + b));
+      }
+      expect(all, 420);
+      c.setMode(RangeMode.week);
+      c.pageDays(1);
+      expect(c.dayTallies.first.day, 7);
+      expect(c.dayTallies.length, 7);
+    });
+
+    test('opening a day from the bars switches to that one day', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.month);
+      c.openDay(9);
+      expect(c.mode, RangeMode.oneDay);
+      expect(c.firstDay, 9);
+      expect(c.rangeLabel, 'Wed 14 Oct');
+      c.openDay(99); // ignored
+      expect(c.firstDay, 9);
+    });
+
+    test('the timeline of a month is drawn, with few labels and no crowding', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.month);
+      final snap = c.snapshotFor(340);
+      expect(snap.ticks.length, lessThanOrEqualTo(7));
+      expect(snap.ticks, isNotEmpty);
+      expect(snap.bars, isNotEmpty);
+    });
+  });
+
+  group('kinds, search and order', () {
+    test('the three kinds are the three score bands, and the counts add up', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.month);
+      final n = c.categoryCounts;
+      expect(n.values.fold<int>(0, (a, b) => a + b), 420);
+      expect(n[EventCategory.marked], c.events.where((e) => e.isMarker).length);
+      expect(n[EventCategory.possibleSeizure]! + n[EventCategory.unusual]! + n[EventCategory.normal]!, 420 - n[EventCategory.marked]!);
+      expect(categoryName(EventCategory.possibleSeizure), 'Possible seizure');
+      expect(categoryName(EventCategory.unusual), 'Unusual activity');
+      expect(categoryName(EventCategory.normal), 'Normal activity');
+      for (final e in c.events.where((e) => !e.isMarker)) {
+        final high = e.event.confidence! >= 0.8, mid = e.event.confidence! >= 0.4;
+        expect(e.category, high ? EventCategory.possibleSeizure : (mid ? EventCategory.unusual : EventCategory.normal));
+      }
+    });
+
+    test('counts follow the days on show, and ignore the filters', () async {
+      final c = await loaded(month);
+      final all = c.categoryCounts.values.fold<int>(0, (a, b) => a + b);
+      c.setCategory(EventCategory.normal);
+      expect(c.categoryCounts.values.fold<int>(0, (a, b) => a + b), all, reason: 'the tiles still show every kind');
+      c.setCategory(null);
+      c.setMode(RangeMode.month);
+      expect(c.categoryCounts.values.fold<int>(0, (a, b) => a + b), 420);
+    });
+
+    test('choosing a kind narrows the list to it, and the same kind again clears it', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.month);
+      c.setCategory(EventCategory.possibleSeizure);
+      expect(c.lists.candidates.every((e) => e.category == EventCategory.possibleSeizure), isTrue);
+      expect(c.lists.candidates.length, c.categoryCounts[EventCategory.possibleSeizure]);
+      expect(c.hasActiveFilter, isTrue);
+      c.setCategory(EventCategory.possibleSeizure);
+      expect(c.category, isNull);
+      expect(c.lists.ordered.length, 420);
+      expect(c.hasActiveFilter, isFalse);
+    });
+
+    test('marked by you shows only the patient presses', () async {
+      final c = await loaded(month);
+      c.setMode(RangeMode.month);
+      c.setCategory(EventCategory.marked);
+      expect(c.lists.candidates, isEmpty);
+      expect(c.lists.markers.length, c.categoryCounts[EventCategory.marked]);
+    });
+
+    test('search finds a kind, a date, a time and a note, and every word must match', () async {
+      final c = await loaded(demo);
+      c.setMode(RangeMode.week);
+      c.setQuery('possible seizure');
+      final seizures = c.lists.ordered.length;
+      expect(seizures, c.categoryCounts[EventCategory.possibleSeizure]);
+      c.setQuery('tue 6 oct');
+      expect(c.lists.ordered, isNotEmpty);
+      final rate = c.info.eegRateHz;
+      expect(c.lists.ordered.every((e) => c.info.localTimeAt(e.event.startSec(rate)).day == 6), isTrue,
+          reason: 'by the clock date, not the 24-hour block (the recording starts at 08:00)');
+      c.setQuery('possible seizure tue 6 oct');
+      expect(c.lists.ordered.length, lessThan(seizures));
+      c.setQuery('zzzz');
+      expect(c.lists.isEmpty, isTrue);
+      c.setQuery('');
+      expect(c.lists.ordered.length, 119);
+    });
+
+    test('search also reads notes, and a decision shows in the words too', () async {
+      final c = await loaded(mini);
+      final id = c.lists.candidates.first.event.id;
+      c.select(id);
+      await c.setNote('felt dizzy after lunch');
+      await c.confirm();
+      c.setQuery('dizzy');
+      expect(c.lists.ordered.map((e) => e.event.id), [id]);
+      c.setQuery('confirmed');
+      expect(c.lists.ordered.map((e) => e.event.id), [id]);
+    });
+
+    test('closing the search clears it; clearFilters clears every narrowing', () async {
+      final c = await loaded(demo);
+      c.toggleSearch();
+      c.setQuery('seizure');
+      expect(c.searching, isTrue);
+      expect(c.hasActiveFilter, isTrue);
+      c.toggleSearch();
+      expect(c.query, '');
+      c.setCategory(EventCategory.unusual);
+      c.setFilter(ReviewFilter.confirmed);
+      c.setQuery('x');
+      c.clearFilters();
+      expect(c.hasActiveFilter, isFalse);
+      expect(c.category, isNull);
+      expect(c.filter, ReviewFilter.all);
+    });
+
+    test('the order can be by score, newest first or oldest first', () async {
+      final c = await loaded(demo);
+      c.setMode(RangeMode.week);
+      final byScore = [for (final e in c.lists.candidates) e.event.confidence!];
+      expect([...byScore]..sort((a, b) => b.compareTo(a)), byScore);
+      c.setSort(ReviewSort.newest);
+      var starts = [for (final e in c.lists.candidates) e.event.startSample];
+      expect([...starts]..sort((a, b) => b.compareTo(a)), starts);
+      c.setSort(ReviewSort.oldest);
+      starts = [for (final e in c.lists.candidates) e.event.startSample];
+      expect([...starts]..sort(), starts);
+      expect(c.lists.markers.length, 9, reason: 'the presses stay in their own group');
+    });
+
+    test('a spark is a small picture of the event, at one scale for all', () async {
+      final c = await loaded(demo);
+      final seizure = c.events.firstWhere((e) => e.event.truth == 'seizure-like');
+      final blink = c.events.firstWhere((e) => e.event.truth == 'blink');
+      final a = (await c.sparkFor(seizure.event.id))!;
+      final b = (await c.sparkFor(blink.event.id))!;
+      expect(a.length, 80);
+      expect(a.every((v) => v >= -1 && v <= 1), isTrue);
+      double spread(List<double> v) => [for (var i = 0; i < v.length; i += 2) v[i + 1] - v[i]].reduce((x, y) => x > y ? x : y);
+      expect(spread(a), greaterThan(0));
+      expect(identical(await c.sparkFor(seizure.event.id), a), isTrue, reason: 'kept, not recomputed');
+      expect(b.length, 80);
     });
   });
 }

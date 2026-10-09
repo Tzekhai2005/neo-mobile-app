@@ -6,10 +6,12 @@ import '../app/app_services.dart';
 import '../data/recording_source.dart';
 import '../data/review_event.dart';
 import '../report/report_models.dart';
+import 'event_spark.dart';
 import 'review_models.dart';
 import 'timeline_model.dart';
 
-enum RangeMode { oneDay, threeDays }
+/// One day, one week (7 days) or one month (28 days, or the whole recording if shorter).
+enum RangeMode { oneDay, week, month }
 
 enum ReviewLoad { loading, ready, unavailable, failed }
 
@@ -37,6 +39,10 @@ class ReviewController extends ChangeNotifier {
   TimeRange _visible = const TimeRange(0, 0);
 
   ReviewFilter _filter = ReviewFilter.all;
+  EventCategory? _category;
+  ReviewSort _sort = ReviewSort.score;
+  String _query = '';
+  bool _searching = false;
   String? _selectedId;
   bool _showSignal = false;
 
@@ -62,22 +68,41 @@ class ReviewController extends ChangeNotifier {
   RecordingInfo get info => _info!;
   RangeMode get mode => _mode;
   ReviewFilter get filter => _filter;
+
+  /// Only this kind of event, or null for every kind.
+  EventCategory? get category => _category;
+  ReviewSort get sort => _sort;
+  String get query => _query;
+
+  /// Whether the search box is open.
+  bool get searching => _searching;
+
+  /// Whether anything narrows the list: a status, a kind, a sort other than the
+  /// default, or a search.
+  bool get hasActiveFilter => _filter != ReviewFilter.all || _category != null || _query.isNotEmpty;
   bool get showSignal => _showSignal;
   String? get selectedId => _selectedId;
   List<ReviewEvent> get events => _events;
   TimeRange get visible => _visible;
 
   int get dayCount => math.max(1, (info.durationSec / _secPerDay).ceil());
-  int get windowDays => math.min(_mode == RangeMode.oneDay ? 1 : 3, dayCount);
+  int get windowDays =>
+      math.min(switch (_mode) { RangeMode.oneDay => 1, RangeMode.week => 7, RangeMode.month => 28 }, dayCount);
+
+  /// How many days one step of Earlier or Later moves: a day, or a whole week or month.
+  int get _pageStep => windowDays;
   int get firstDay => _firstDay;
   int get lastDay => _firstDay + windowDays - 1;
 
   /// The days on show, before any zoom.
-  TimeRange get bounds => TimeRange(_firstDay * _secPerDay, math.min((_firstDay + windowDays) * _secPerDay, info.durationSec.toDouble()));
+  TimeRange get bounds =>
+      TimeRange(_firstDay * _secPerDay, math.min((_firstDay + windowDays) * _secPerDay, info.durationSec.toDouble()));
 
   bool get isZoomed => _visible.lengthSec < bounds.lengthSec - 1e-6;
 
-  bool canPage(int delta) => windowDays < dayCount && (_firstDay + delta) >= 0 && (_firstDay + delta) <= dayCount - windowDays;
+  int _target(int delta) => (_firstDay + delta * _pageStep).clamp(0, dayCount - windowDays);
+
+  bool canPage(int delta) => windowDays < dayCount && _target(delta) != _firstDay;
 
   /// "Mon 5 Oct" for one day, "Mon 5 Oct to Wed 7 Oct" for several.
   String get rangeLabel {
@@ -89,14 +114,77 @@ class ReviewController extends ChangeNotifier {
 
   /// The events in the days on show, in the filter, as the list shows them.
   ReviewLists get lists {
-    final key = '$_version|$_firstDay|$windowDays|${_filter.index}';
+    final key = '$_version|$_firstDay|$windowDays|${_filter.index}|${_category?.index}|${_sort.index}|$_query';
     if (_lists == null || _listsKey != key) {
       final rate = info.eegRateHz;
       final b = bounds;
-      _lists = buildLists([for (final e in _events) if (b.contains(e.event.startSec(rate))) e], _filter);
+      _lists = buildLists([
+        for (final e in _events)
+          if (b.contains(e.event.startSec(rate)) && (_category == null || e.category == _category) && _matches(e)) e
+      ], _filter, sort: _sort);
       _listsKey = key;
     }
     return _lists!;
+  }
+
+  /// Whether the search text is found in an event's kind, status, date, time or note.
+  bool _matches(ReviewEvent e) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    final local = info.localTimeAt(e.event.startSec(info.eegRateHz));
+    final hay = [
+      categoryName(e.category),
+      switch (e.status) {
+        ReviewStatus.candidate => 'unreviewed',
+        ReviewStatus.confirmed => 'confirmed',
+        ReviewStatus.dismissed => 'dismissed',
+      },
+      dateLabel(local),
+      '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
+      e.note ?? '',
+    ].join(' ').toLowerCase();
+    return q.split(RegExp(r'\s+')).every(hay.contains);
+  }
+
+  /// A week or a month is drawn as one bar per day instead of a timeline: this many
+  /// days or more.
+  static const dailyBarsFromDays = 4;
+
+  /// Whether the days on show are drawn as daily bars.
+  bool get showsDailyBars => windowDays >= dailyBarsFromDays;
+
+  /// One tally per day on show, oldest first.
+  List<DayTally> get dayTallies {
+    final rate = info.eegRateHz;
+    final out = <DayTally>[];
+    for (var d = firstDay; d <= lastDay; d++) {
+      final counts = {for (final c in EventCategory.values) c: 0};
+      for (final e in _events) {
+        final sec = e.event.startSec(rate);
+        if (sec >= d * _secPerDay && sec < (d + 1) * _secPerDay) counts[e.category] = counts[e.category]! + 1;
+      }
+      out.add(DayTally(d, d * _secPerDay, counts));
+    }
+    return out;
+  }
+
+  /// Open one day of the days on show in the one-day view.
+  void openDay(int day) {
+    if (day < 0 || day >= dayCount) return;
+    _mode = RangeMode.oneDay;
+    _firstDay = day;
+    resetZoom();
+  }
+
+  /// How many events of each kind the days on show hold, whatever the filters say.
+  Map<EventCategory, int> get categoryCounts {
+    final rate = info.eegRateHz;
+    final b = bounds;
+    final out = {for (final c in EventCategory.values) c: 0};
+    for (final e in _events) {
+      if (b.contains(e.event.startSec(rate))) out[e.category] = out[e.category]! + 1;
+    }
+    return out;
   }
 
   /// Progress over every event of the recording, not just the days on show.
@@ -130,6 +218,7 @@ class ReviewController extends ChangeNotifier {
       _info = _s.recording.info;
       _events = _s.reviewEvents();
       _windows.clear();
+      _sparks.clear();
       _firstDay = 0;
       _selectedId = null;
       _version++;
@@ -178,7 +267,7 @@ class ReviewController extends ChangeNotifier {
   /// Move the days on show earlier (-1) or later (+1) by a day.
   void pageDays(int delta) {
     if (!canPage(delta)) return;
-    _firstDay += delta;
+    _firstDay = _target(delta);
     resetZoom();
   }
 
@@ -222,6 +311,42 @@ class ReviewController extends ChangeNotifier {
   void setFilter(ReviewFilter f) {
     if (f == _filter) return;
     _filter = f;
+    notifyListeners();
+  }
+
+  /// Narrow the list to one kind of event; the same kind again, or null, clears it.
+  void setCategory(EventCategory? c) {
+    final next = c == _category ? null : c;
+    if (next == _category) return;
+    _category = next;
+    notifyListeners();
+  }
+
+  void setSort(ReviewSort s) {
+    if (s == _sort) return;
+    _sort = s;
+    notifyListeners();
+  }
+
+  /// Open or close the search box. Closing it clears the search.
+  void toggleSearch() {
+    _searching = !_searching;
+    if (!_searching) _query = '';
+    notifyListeners();
+  }
+
+  void setQuery(String text) {
+    if (text == _query) return;
+    _query = text;
+    notifyListeners();
+  }
+
+  /// Back to every event, every kind, no search (the sort is left as chosen).
+  void clearFilters() {
+    _filter = ReviewFilter.all;
+    _category = null;
+    _query = '';
+    _searching = false;
     notifyListeners();
   }
 
@@ -309,6 +434,22 @@ class ReviewController extends ChangeNotifier {
     return f;
   }
 
+  final Map<String, Future<Float32List?>> _sparks = {};
+
+  /// The small picture of an event for the list, or null if its signal cannot be read.
+  /// Kept for the rest of the session: it is only a few dozen numbers.
+  Future<Float32List?> sparkFor(String id) => _sparks.putIfAbsent(id, () async {
+        try {
+          final w = await _s.recording.eventWindow(id);
+          final rate = info.eegRateHz;
+          final e = _events.firstWhere((e) => e.event.id == id);
+          return sparkOf(w, e.event.durationSec(rate));
+        } catch (_) {
+          _sparks.remove(id);
+          return null;
+        }
+      });
+
   /// The timeline at the current zoom for a view [width] pixels wide.
   TimelineSnapshot snapshotFor(double width) {
     final key = '$_version|${_visible.startSec}|${_visible.endSec}|${width.round()}';
@@ -324,8 +465,14 @@ class ReviewController extends ChangeNotifier {
     _snap = TimelineSnapshot(
       visible: v,
       overview: ov,
-      bars: clusterEvents([for (final e in inView) if (!e.isMarker) e], xOf: xOf, eegRateHz: rate),
-      markers: clusterEvents([for (final e in inView) if (e.isMarker) e], xOf: xOf, eegRateHz: rate, minGapPx: 4, minWidthPx: 10),
+      bars: clusterEvents([
+        for (final e in inView)
+          if (!e.isMarker) e
+      ], xOf: xOf, eegRateHz: rate),
+      markers: clusterEvents([
+        for (final e in inView)
+          if (e.isMarker) e
+      ], xOf: xOf, eegRateHz: rate, minGapPx: 4, minWidthPx: 10),
       ticks: axisTicks(v, info),
       poor: poorStretches(ov, kUsableQuality),
     );

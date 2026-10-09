@@ -4,12 +4,34 @@ import '../data/score_band.dart';
 /// Which events the Review list shows.
 enum ReviewFilter { all, unreviewed, confirmed, dismissed }
 
+/// How the list is ordered: by score (the default), or by time.
+enum ReviewSort { score, newest, oldest }
+
+/// What an event is called on screen. The three automatic kinds are the three score
+/// bands under friendlier names; a patient button press is its own kind.
+enum EventCategory { possibleSeizure, unusual, normal, marked }
+
+String categoryName(EventCategory c) => switch (c) {
+      EventCategory.possibleSeizure => 'Possible seizure',
+      EventCategory.unusual => 'Unusual activity',
+      EventCategory.normal => 'Normal activity',
+      EventCategory.marked => 'Marked by you',
+    };
+
+EventCategory categoryOfBand(ScoreBand b) => switch (b) {
+      ScoreBand.high => EventCategory.possibleSeizure,
+      ScoreBand.medium => EventCategory.unusual,
+      ScoreBand.low => EventCategory.normal,
+    };
+
 extension ReviewEventView on ReviewEvent {
   /// A patient button press: a person flagged it, no algorithm scored it.
   bool get isMarker => event.source == EventSource.patientButton;
 
   /// High, Medium or Low for an automatic event; null for a patient marker.
   ScoreBand? get band => scoreBandOf(event.confidence);
+
+  EventCategory get category => isMarker ? EventCategory.marked : categoryOfBand(band ?? ScoreBand.low);
 
   /// An event the reviewer has decided about, either way.
   bool get isReviewed => status != ReviewStatus.candidate;
@@ -29,8 +51,10 @@ int compareCandidates(ReviewEvent a, ReviewEvent b) {
   return byScore != 0 ? byScore : a.event.startSample.compareTo(b.event.startSample);
 }
 
+int _byTime(ReviewEvent a, ReviewEvent b) => a.event.startSample.compareTo(b.event.startSample);
+
 /// What the list shows: the patient markers pinned at the top (in time order), then
-/// the candidates ranked by score.
+/// the candidates in the chosen order.
 class ReviewLists {
   final List<ReviewEvent> markers;
   final List<ReviewEvent> candidates;
@@ -43,11 +67,22 @@ class ReviewLists {
   bool get isEmpty => markers.isEmpty && candidates.isEmpty;
 }
 
-ReviewLists buildLists(Iterable<ReviewEvent> events, ReviewFilter filter) {
-  final kept = [for (final e in events) if (passesFilter(e, filter)) e];
+ReviewLists buildLists(Iterable<ReviewEvent> events, ReviewFilter filter, {ReviewSort sort = ReviewSort.score}) {
+  final kept = [
+    for (final e in events)
+      if (passesFilter(e, filter)) e
+  ];
+  final newestFirst = sort == ReviewSort.newest;
+  int byTime(ReviewEvent a, ReviewEvent b) => newestFirst ? _byTime(b, a) : _byTime(a, b);
   return ReviewLists(
-    [for (final e in kept) if (e.isMarker) e]..sort((a, b) => a.event.startSample.compareTo(b.event.startSample)),
-    [for (final e in kept) if (!e.isMarker) e]..sort(compareCandidates),
+    [
+      for (final e in kept)
+        if (e.isMarker) e
+    ]..sort(byTime),
+    [
+      for (final e in kept)
+        if (!e.isMarker) e
+    ]..sort(sort == ReviewSort.score ? compareCandidates : byTime),
   );
 }
 
@@ -79,6 +114,7 @@ class ReviewCounts {
           unreviewed++;
       }
     }
-    return ReviewCounts(total: total, confirmed: confirmed, dismissed: dismissed, unreviewed: unreviewed, markers: markers);
+    return ReviewCounts(
+        total: total, confirmed: confirmed, dismissed: dismissed, unreviewed: unreviewed, markers: markers);
   }
 }
