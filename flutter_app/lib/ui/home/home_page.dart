@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app/app_scope.dart';
 import '../../app/app_services.dart';
 import '../../config/app_config.dart';
+import '../../data/review_event.dart';
+import '../../review/review_models.dart';
 import '../../review/timeline_model.dart' show dateLabel;
 import '../format.dart';
 import '../shell/tab_scope.dart';
@@ -73,7 +75,9 @@ class _HomePageState extends State<HomePage> {
       final info = s.recording.info;
       final rate = info.eegRateHz;
       final lastDay = (info.durationSec - 1) ~/ 86400;
-      final onLastDay = events.where((e) => e.event.startSec(rate) ~/ 86400 == lastDay).length;
+      final toReview = events
+          .where((e) => e.event.startSec(rate) ~/ 86400 == lastDay && e.status == ReviewStatus.candidate && !e.isMarker)
+          .length;
       return _RecordingLine(
         chip: [
           s.currentDataset ?? 'Demo recording',
@@ -82,7 +86,7 @@ class _HomePageState extends State<HomePage> {
           plural(events.length, 'event'),
         ].join(' · '),
         notice: s.datasetNotice,
-        latestDayEvents: onLastDay,
+        latestDayEvents: toReview,
         latestDayLine: dateLabel(info.localTimeAt(lastDay * 86400.0)),
         totalEvents: events.length,
         totalLine: 'Over ${durationText(info.durationSec)}',
@@ -147,14 +151,12 @@ class _HomePageState extends State<HomePage> {
               ]),
             ),
             const SizedBox(height: 8),
-            const DeviceHero(),
+            const DeviceHero(height: 150),
             const SizedBox(height: 4),
             Center(child: DevicePill(status: s.status, loss: () => s.loss)),
             const SizedBox(height: 14),
             StatusChips(status: s.status, risk: s.activityRisk),
             const SizedBox(height: 14),
-            LiveDataCard(status: s.status, buffer: s.live, onTap: () => _open(ShellTab.live)),
-            const SizedBox(height: 12),
             FutureBuilder<_RecordingLine>(
               future: _recording,
               initialData: _RecordingLine.loading,
@@ -167,8 +169,8 @@ class _HomePageState extends State<HomePage> {
                         child: StatTile(
                           icon: Icons.notifications_none,
                           value: line.latestDayEvents?.toString() ?? unknownText,
-                          label: 'Latest day',
-                          line: line.latestDayEvents == null ? unknownText : '${line.latestDayLine} · tap to review',
+                          label: 'To review',
+                          line: line.latestDayEvents == null ? unknownText : 'On ${line.latestDayLine}',
                           onTap: () => _open(ShellTab.history),
                         ),
                       ),
@@ -184,6 +186,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ]),
                   ),
+                  const SizedBox(height: 12),
+                  LiveDataCard(status: s.status, buffer: s.live, onTap: () => _open(ShellTab.live)),
                   const SizedBox(height: 16),
                   _RecordingChip(text: line.chip, onTap: _chooseRecording),
                   if (line.notice != null) ...[

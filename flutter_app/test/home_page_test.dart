@@ -157,16 +157,27 @@ void main() {
     testWidgets('the two counts come from the recording, and open History', (t) async {
       final s = await services(t);
       await openHome(t, s);
-      final total = s.reviewEvents().length;
-      Finder value(String label) => find.descendant(
-          of: find.ancestor(of: tile(label), matching: find.byType(StatTile)), matching: find.text('$total'));
-      expect(value('Total events'), findsOneWidget);
+      final all = s.reviewEvents();
+      final total = all.length;
+      final toReview = all.where((e) => e.status == ReviewStatus.candidate && e.event.source != EventSource.patientButton).length;
+      Finder value(String label, int n) => find.descendant(
+          of: find.ancestor(of: tile(label), matching: find.byType(StatTile)), matching: find.text('$n'));
+      expect(value('Total events', total), findsOneWidget);
       expect(find.text('Over 1 hour'), findsOneWidget);
-      expect(value('Latest day'), findsOneWidget, reason: 'a one-hour recording is all on its one day');
+      expect(value('To review', toReview), findsOneWidget, reason: 'unreviewed automatic events, not the patient markers');
       expect(find.textContaining('Mon 5 Oct'), findsOneWidget);
-      await tapTile(t, 'Latest day');
+      await tapTile(t, 'To review');
       await settle(t);
       expect(tester(t).selectedTab, ShellTab.history);
+    });
+
+    testWidgets('the two counts are on the first screen of a normal phone, above the tabs', (t) async {
+      final s = await services(t);
+      await openHome(t, s);
+      final tabsTop = t.getTopLeft(find.byType(NavigationBar)).dy;
+      for (final label in ['To review', 'Total events']) {
+        expect(t.getBottomLeft(find.ancestor(of: tile(label), matching: find.byType(StatTile))).dy, lessThan(tabsTop), reason: label);
+      }
     });
 
     testWidgets('without a recording the counts are dashes', (t) async {
@@ -282,7 +293,7 @@ void main() {
       await settle(t);
       expect(tester(t).selectedTab, ShellTab.history);
       await navTo(t, 'Home');
-      await tapTile(t, 'Latest day');
+      await tapTile(t, 'To review');
       await settle(t);
       expect(tester(t).selectedTab, ShellTab.history);
     });
