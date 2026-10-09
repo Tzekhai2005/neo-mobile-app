@@ -2,7 +2,7 @@ import '../data/review_event.dart';
 import '../data/score_band.dart';
 
 /// Which events the Review list shows.
-enum ReviewFilter { all, unreviewed, confirmed, dismissed }
+enum ReviewFilter { all, unreviewed, confirmed, dismissed, unsure }
 
 /// How the list is ordered: by score (the default), or by time.
 enum ReviewSort { score, newest, oldest }
@@ -42,6 +42,7 @@ bool passesFilter(ReviewEvent e, ReviewFilter f) => switch (f) {
       ReviewFilter.unreviewed => e.status == ReviewStatus.candidate,
       ReviewFilter.confirmed => e.status == ReviewStatus.confirmed,
       ReviewFilter.dismissed => e.status == ReviewStatus.dismissed,
+      ReviewFilter.unsure => e.status == ReviewStatus.unsure,
     };
 
 /// The order of the candidate list: highest score first, and events with the same
@@ -88,7 +89,7 @@ ReviewLists buildLists(Iterable<ReviewEvent> events, ReviewFilter filter, {Revie
 
 /// How far the review has got, over every event of the recording.
 class ReviewCounts {
-  final int total, confirmed, dismissed, unreviewed, markers;
+  final int total, confirmed, dismissed, unreviewed, markers, unsure;
 
   const ReviewCounts({
     required this.total,
@@ -96,12 +97,13 @@ class ReviewCounts {
     required this.dismissed,
     required this.unreviewed,
     required this.markers,
+    this.unsure = 0,
   });
 
-  int get reviewed => confirmed + dismissed;
+  int get reviewed => confirmed + dismissed + unsure;
 
   factory ReviewCounts.of(Iterable<ReviewEvent> events) {
-    var total = 0, confirmed = 0, dismissed = 0, unreviewed = 0, markers = 0;
+    var total = 0, confirmed = 0, dismissed = 0, unreviewed = 0, markers = 0, unsure = 0;
     for (final e in events) {
       total++;
       if (e.isMarker) markers++;
@@ -112,9 +114,11 @@ class ReviewCounts {
           dismissed++;
         case ReviewStatus.candidate:
           unreviewed++;
+        case ReviewStatus.unsure:
+          unsure++;
       }
     }
     return ReviewCounts(
-        total: total, confirmed: confirmed, dismissed: dismissed, unreviewed: unreviewed, markers: markers);
+        total: total, confirmed: confirmed, dismissed: dismissed, unreviewed: unreviewed, markers: markers, unsure: unsure);
   }
 }

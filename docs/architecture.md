@@ -121,13 +121,22 @@ it is tested on its own; `ReviewController` is the state of the page.
   (`review/event_spark.dart`). The list follows the days on show; the "reviewed" progress counts
   every event.
 * **An event.** A half-screen sheet that leaves the timeline above it, with the selected mark
-  outlined: where it is in the list, when it happened, the stored 40 s of EEG, accelerometer
-  and gyro on the shared signal view with the event's stretch shaded, a note, and Confirm and
-  Dismiss pinned at the foot so they are never scrolled out of reach. Previous and Next walk
+  outlined: where it is in the list, a banner with the kind, date, time and length, a note
+  saying whether the event looks like ones already confirmed, the stored 40 s of EEG,
+  accelerometer and gyro on the shared signal view with the event's stretch shaded (All, EEG or
+  Movement), a play bar that moves a cursor through the 40 s in real time and can be dragged,
+  and a note. This was a seizure, Not a seizure and Not sure are pinned at the foot so they are
+  never scrolled out of reach. Not sure is a decision of its own: it counts as looked at, has
+  its own filter, and is shown in the report as "marked not sure". Previous and Next walk
   the list. Decisions are written one at a time; if a write fails the screen says so and shows
   what is really saved (`ReviewStore` undoes the change in memory when its file cannot be
   written, so it never holds more than is on disk). A note is saved a moment after typing stops,
   when the field loses focus, and when the sheet moves on, always to the event it was typed on.
+* **Looks similar** (`review/event_similarity.dart`). Experimental. Four plain measures of an
+  event's first channel (spread, step size, crossings a second, length) are compared with those
+  of the events you confirmed; closer than a fixed distance counts as similar. On the demo
+  recording the seizure-like events match each other and none of the blinks, clenches or head
+  shakes. It is not a trained model and not a diagnosis, and the page says so.
 * The generator's ground-truth labels in the synthetic recording are never shown: they are not
   detections.
 

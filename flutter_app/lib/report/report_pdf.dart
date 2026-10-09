@@ -302,6 +302,7 @@ class ReportPdf {
           stat('${s.highConfidence}', 'high confidence (0.80 or more)'),
           stat('${s.unreviewed}', 'not yet reviewed'),
           stat('${s.dismissed}', 'dismissed'),
+          if (s.unsure > 0) stat('${s.unsure}', 'marked not sure'),
           stat('${s.patientMarkers}', 'patient button presses'),
         ]),
       ]),
@@ -555,6 +556,7 @@ class ReportPdf {
         ReviewStatus.confirmed => 'Confirmed by reviewer',
         ReviewStatus.dismissed => 'Dismissed by reviewer',
         ReviewStatus.candidate => 'Not yet reviewed',
+        ReviewStatus.unsure => 'Marked not sure by reviewer',
       };
 
   pw.Widget _entry(ReportData d, ReportEntry e) {

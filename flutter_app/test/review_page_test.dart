@@ -317,7 +317,7 @@ void main() {
       await t.tap(find.byKey(const ValueKey('previous')));
       await settle(t, 150);
       expect(find.text('Event 1 of 5'), findsOneWidget);
-      expect(find.text('Patient button press'), findsWidgets);
+      expect(find.descendant(of: find.byKey(const ValueKey('kind-banner')), matching: find.text('Marked by you')), findsOneWidget);
     });
 
     testWidgets('the cross closes it, and the timeline and list are back to themselves', (t) async {
@@ -331,7 +331,7 @@ void main() {
       expect(find.byKey(const ValueKey('progress')), findsOneWidget);
     });
 
-    testWidgets('the scale and the motion lanes can be changed in the sheet', (t) async {
+    testWidgets('the scale and the lane tabs can be changed in the sheet', (t) async {
       final s = await services(t, mini);
       await open(t, s);
       await t.tap(row(candidates(s).first.event.id));
@@ -339,9 +339,100 @@ void main() {
       await t.tap(find.byKey(const ValueKey('sheet-scale')));
       await t.pump();
       expect(t.widget<SignalLanes>(find.byType(SignalLanes)).data.lanes.first.scale, 200);
-      await t.tap(find.byKey(const ValueKey('sheet-motion')));
+      List<String> labels() => t.widget<SignalLanes>(find.byType(SignalLanes)).data.lanes.map((l) => l.label).toList();
+      expect(labels(), ['Ch1', 'Ch2', 'Accel', 'Gyro']);
+      await t.tap(find.byKey(const ValueKey('sheet-lanes-eeg')));
       await t.pump();
-      expect(t.widget<SignalLanes>(find.byType(SignalLanes)).data.lanes.length, 2);
+      expect(labels(), ['Ch1', 'Ch2']);
+      await t.tap(find.byKey(const ValueKey('sheet-lanes-movement')));
+      await t.pump();
+      expect(labels(), ['Accel', 'Gyro']);
+      expect(find.byKey(const ValueKey('sheet-scale')), findsNothing, reason: 'the µV scale means nothing for movement');
+    });
+
+    testWidgets('the sheet names the kind, and the three buttons say what they mean', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      final top = candidates(s).first;
+      await t.tap(row(top.event.id));
+      await settle(t, 150);
+      expect(find.descendant(of: find.byKey(const ValueKey('kind-banner')), matching: find.text('Possible seizure')), findsOneWidget);
+      for (final (k, label) in [('confirm', 'This was a seizure'), ('dismiss', 'Not a seizure'), ('unsure', 'Not sure')]) {
+        expect(find.descendant(of: find.byKey(ValueKey(k)), matching: find.text(label)), findsOneWidget, reason: k);
+      }
+    });
+
+    testWidgets('Not sure is a decision of its own, shows in the list, and can be undone', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      final id = candidates(s).first.event.id;
+      await t.tap(row(id));
+      await settle(t, 150);
+      await t.tap(find.byKey(const ValueKey('unsure')));
+      await settle(t, 150);
+      expect(find.text('Status: Not sure'), findsOneWidget);
+      expect(s.reviewEvents().firstWhere((e) => e.event.id == id).status, ReviewStatus.unsure);
+      await t.tap(find.byKey(const ValueKey('undo')));
+      await settle(t, 150);
+      expect(find.text('Status: Unreviewed'), findsOneWidget);
+    });
+
+    testWidgets('the similar-events note asks for confirmations first, then compares', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      final ids = [for (final e in candidates(s)) e.event.id];
+      await t.tap(row(ids.first));
+      await settle(t, 200);
+      expect(find.textContaining('Confirm a few events'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('confirm')));
+      await settle(t, 200);
+      // The same event is never compared with itself, so still nothing to compare with.
+      expect(find.textContaining('Confirm a few events'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('next')));
+      await settle(t, 200);
+      expect(find.textContaining('your 1 confirmed event'), findsOneWidget);
+      expect(find.text('Experimental, not a diagnosis'), findsOneWidget);
+    });
+
+    testWidgets('a marker has no similar-events note', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      final marker = s.reviewEvents().firstWhere((e) => e.event.source == EventSource.patientButton);
+      await t.tap(row(marker.event.id));
+      await settle(t, 150);
+      expect(find.byKey(const ValueKey('similar-note')), findsNothing);
+    });
+
+    testWidgets('playback runs through the stored signal, can be seeked, and starts over for each event', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      final ids = [for (final e in candidates(s)) e.event.id];
+      await t.tap(row(ids.first));
+      await settle(t, 200);
+      String time() => t.widget<Text>(find.byKey(const ValueKey('playback-time'))).data!;
+      expect(time(), '0:00 / 0:40');
+      await t.ensureVisible(find.byKey(const ValueKey('play')));
+      await t.pump();
+      await t.tap(find.byKey(const ValueKey('play')));
+      await t.pump();
+      await t.pump(const Duration(seconds: 10));
+      expect(time(), '0:10 / 0:40');
+      await t.tap(find.byKey(const ValueKey('play'))); // pause
+      await t.pump();
+      await t.pump(const Duration(seconds: 5));
+      expect(time(), '0:10 / 0:40', reason: 'paused');
+      await t.ensureVisible(find.byKey(const ValueKey('playback')));
+      await t.pump();
+      final box = t.getRect(find.byKey(const ValueKey('playback')));
+      await t.tapAt(Offset(box.left + box.width * 0.75, box.center.dy));
+      await t.pump();
+      expect(time().startsWith('0:3') || time().startsWith('0:2'), isTrue, reason: 'seeked to about three quarters: ${time()}');
+      await t.ensureVisible(find.byKey(const ValueKey('next')));
+      await t.pump();
+      await t.tap(find.byKey(const ValueKey('next')));
+      await settle(t, 200);
+      expect(find.text('Event 3 of 5'), findsOneWidget);
+      expect(time(), '0:00 / 0:40', reason: 'a new event starts from the beginning');
     });
 
     testWidgets('a patient marker can be decided about too, and has no band', (t) async {

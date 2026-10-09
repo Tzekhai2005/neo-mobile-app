@@ -3,18 +3,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../data/recording_source.dart';
+import '../../config/app_config.dart';
 import '../../data/review_event.dart';
+import '../../review/event_similarity.dart';
 import '../../review/review_controller.dart';
 import '../../review/review_models.dart';
 import '../../review/timeline_model.dart';
 import '../data/data_controls.dart';
+import '../data/data_view_controller.dart' show LaneSet;
+import '../format.dart';
 import '../theme/app_theme.dart';
 import '../trace/signal_lanes.dart';
 import '../trace/trace_sources.dart';
 import 'review_widgets.dart';
 
 /// What the half-screen sheet shows for the selected event: where it is in the list,
-/// when it happened, the stored signal around it, a note, and Confirm or Dismiss.
+/// what kind of event it is and when, whether it looks like events already confirmed,
+/// the stored signal around it with a playback bar, and a note. The decision buttons
+/// are in [EventSheetFooter].
 class EventSheetBody extends StatefulWidget {
   final ReviewController controller;
 
@@ -26,7 +32,7 @@ class EventSheetBody extends StatefulWidget {
 
 class _EventSheetBodyState extends State<EventSheetBody> {
   double _scaleUv = kDefaultEegScaleUv;
-  bool _showMotion = true;
+  LaneSet _lanes = LaneSet.all;
   String? _windowId;
   Future<SignalWindow>? _window;
 
@@ -52,74 +58,53 @@ class _EventSheetBodyState extends State<EventSheetBody> {
         final rate = c.info.eegRateHz;
         final start = c.info.localTimeAt(sel.event.startSec(rate));
         final pos = c.position;
+        final confirmedCount = c.events.where((e) => e.status == ReviewStatus.confirmed).length;
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
               IconButton(key: const ValueKey('previous'), tooltip: 'Previous event', icon: const Icon(Icons.chevron_left), onPressed: c.previous),
               Expanded(
-                child: Column(children: [
-                  Text(pos == null ? 'Event' : 'Event $pos of ${c.positionCount}',
-                      key: const ValueKey('position'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  Text(dateTimeLabel(start), style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                ]),
+                child: Text(pos == null ? 'Event' : 'Event $pos of ${c.positionCount}',
+                    key: const ValueKey('position'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
               IconButton(key: const ValueKey('next'), tooltip: 'Next event', icon: const Icon(Icons.chevron_right), onPressed: c.next),
               IconButton(key: const ValueKey('close-sheet'), tooltip: 'Close', icon: const Icon(Icons.close), onPressed: c.clearSelection),
             ]),
             const SizedBox(height: 4),
-            Row(children: [
-              Expanded(
-                child: Text(
-                  [
-                    if (!sel.isMarker) durationShort(sel.event.durationSec(rate)),
-                    sel.isMarker ? 'Patient button press' : 'Automatic · ${channelsText(sel)}',
-                  ].join(' · '),
-                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                ),
+            _KindBanner(event: sel, when: dateTimeLabel(start), durationSec: sel.event.durationSec(rate), channels: channelsText(sel)),
+            if (!sel.isMarker) ...[
+              const SizedBox(height: 8),
+              FutureBuilder<SimilarEvents>(
+                key: ValueKey('similar-${sel.event.id}-$confirmedCount'),
+                future: c.similarTo(sel.event.id),
+                builder: (context, snap) => _SimilarNote(result: snap.data),
               ),
-              if (sel.band != null) BandChip(band: sel.band!),
-            ]),
+            ],
             const SizedBox(height: 12),
-            Wrap(spacing: 8, runSpacing: 6, children: [
-              PillButton(
-                key: const ValueKey('sheet-scale'),
-                label: '±${_scaleUv.round()} µV',
-                tooltip: 'Change the scale',
-                onTap: _nextScale,
-              ),
-              PillButton(
-                key: const ValueKey('sheet-motion'),
-                label: 'Motion',
-                selected: _showMotion,
-                tooltip: _showMotion ? 'Hide the motion lanes' : 'Show the motion lanes',
-                onTap: () => setState(() => _showMotion = !_showMotion),
-              ),
+            Row(children: [
+              Expanded(child: _LaneSegments(value: _lanes, onChanged: (v) => setState(() => _lanes = v))),
+              const SizedBox(width: 8),
+              if (_lanes != LaneSet.movement)
+                PillButton(
+                  key: const ValueKey('sheet-scale'),
+                  label: '±${_scaleUv.round()} µV',
+                  tooltip: 'Change the scale',
+                  onTap: _nextScale,
+                ),
             ]),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 320,
-              child: FutureBuilder<SignalWindow>(
-                key: ValueKey('signal-${sel.event.id}'),
-                future: _windowFor(sel.event.id),
-                builder: (context, snap) {
-                  if (snap.hasError) {
-                    return _SignalError(onRetry: () => setState(() => _window = null));
-                  }
-                  final w = snap.data;
-                  if (w == null) return const Center(child: CircularProgressIndicator());
-                  return SignalLanes(
-                    data: windowTraceData(
-                      w,
-                      eventDurationSec: sel.event.durationSec(rate),
-                      eegScaleUv: _scaleUv,
-                      showMotion: _showMotion,
-                    ),
-                  );
-                },
-              ),
+            _SignalPlayer(
+              key: ValueKey('player-${sel.event.id}'),
+              future: _windowFor(sel.event.id),
+              onRetry: () => setState(() => _window = null),
+              eventDurationSec: sel.event.durationSec(rate),
+              scaleUv: _scaleUv,
+              lanes: _lanes,
             ),
             const SizedBox(height: 14),
+            const Text('Your note', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
             NoteField(key: ValueKey('note-${sel.event.id}'), controller: c, eventId: sel.event.id, initial: sel.note),
             const SizedBox(height: 8),
           ]),
@@ -127,6 +112,251 @@ class _EventSheetBodyState extends State<EventSheetBody> {
       },
     );
   }
+}
+
+/// What kind of event this is, in its own colour, with when and for how long.
+class _KindBanner extends StatelessWidget {
+  final ReviewEvent event;
+  final String when;
+  final double durationSec;
+  final String channels;
+
+  const _KindBanner({required this.event, required this.when, required this.durationSec, required this.channels});
+
+  @override
+  Widget build(BuildContext context) {
+    final cat = event.category;
+    final color = categoryColor(cat);
+    return Container(
+      key: const ValueKey('kind-banner'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(children: [
+        CategoryDot(category: cat, size: 16),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(categoryName(cat), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: color)),
+            const SizedBox(height: 2),
+            Text(
+              [when, if (!event.isMarker) durationShort(durationSec)].join(' · '),
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            if (!event.isMarker) Text(channels, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+/// Whether the event looks like ones already confirmed, in plain words. Experimental:
+/// it compares a few simple measures of the signal, not a trained model.
+class _SimilarNote extends StatelessWidget {
+  final SimilarEvents? result;
+  const _SimilarNote({required this.result});
+
+  static String text(SimilarEvents r) {
+    if (r.compared == 0) return 'Confirm a few events and this page will show which ones look alike.';
+    if (r.similar == 0) return 'Does not look like any of your ${plural(r.compared, 'confirmed event')}.';
+    return 'Looks similar to ${r.similar} of your ${plural(r.compared, 'confirmed event')}.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = result;
+    return Container(
+      key: const ValueKey('similar-note'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.surfaceSoft, borderRadius: BorderRadius.circular(12)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.info_outline, size: 18, color: AppColors.accent),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(r == null ? 'Comparing with your confirmed events…' : text(r), style: const TextStyle(fontSize: 13)),
+            if (kRiskExperimentalNote.isNotEmpty)
+              const Text(kRiskExperimentalNote, style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+/// All, EEG or Movement.
+class _LaneSegments extends StatelessWidget {
+  final LaneSet value;
+  final ValueChanged<LaneSet> onChanged;
+  const _LaneSegments({required this.value, required this.onChanged});
+
+  static const _labels = {LaneSet.all: 'All', LaneSet.eeg: 'EEG', LaneSet.movement: 'Movement'};
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(10)),
+      child: Row(children: [
+        for (final e in _labels.entries)
+          Expanded(
+            child: GestureDetector(
+              key: ValueKey('sheet-lanes-${e.key.name}'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onChanged(e.key),
+              child: Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                decoration: BoxDecoration(color: value == e.key ? AppColors.navy : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+                child: Text(e.value,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: value == e.key ? AppColors.onNavy : AppColors.textSecondary)),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+/// "0:12".
+String clockMinutes(double sec) {
+  final s = sec.floor();
+  return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+}
+
+/// The stored signal, a cursor that plays through it in real time, and the bar to
+/// play, pause and seek. Its state (the position) starts again for every event.
+class _SignalPlayer extends StatefulWidget {
+  final Future<SignalWindow> future;
+  final VoidCallback onRetry;
+  final double eventDurationSec;
+  final double scaleUv;
+  final LaneSet lanes;
+
+  const _SignalPlayer({
+    super.key,
+    required this.future,
+    required this.onRetry,
+    required this.eventDurationSec,
+    required this.scaleUv,
+    required this.lanes,
+  });
+
+  @override
+  State<_SignalPlayer> createState() => _SignalPlayerState();
+}
+
+class _SignalPlayerState extends State<_SignalPlayer> with SingleTickerProviderStateMixin {
+  late final AnimationController _play = AnimationController(vsync: this, duration: const Duration(seconds: 40));
+
+  @override
+  void initState() {
+    super.initState();
+    _play.addStatusListener((_) {
+      if (mounted) setState(() {}); // the button follows playing, paused and finished
+    });
+  }
+
+  @override
+  void dispose() {
+    _play.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    if (_play.isAnimating) {
+      _play.stop();
+    } else {
+      if (_play.value >= 1) _play.value = 0;
+      _play.forward();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<SignalWindow>(
+      future: widget.future,
+      builder: (context, snap) {
+        if (snap.hasError) return SizedBox(height: 320, child: _SignalError(onRetry: widget.onRetry));
+        final w = snap.data;
+        if (w == null) return const SizedBox(height: 320, child: Center(child: CircularProgressIndicator()));
+        final duration = w.durationSec;
+        _play.duration = Duration(milliseconds: (duration * 1000).round());
+        return Column(children: [
+          SizedBox(
+            height: 320,
+            child: Stack(children: [
+              Positioned.fill(
+                child: SignalLanes(
+                  data: windowTraceData(
+                    w,
+                    eventDurationSec: widget.eventDurationSec,
+                    eegScaleUv: widget.scaleUv,
+                    showMotion: widget.lanes != LaneSet.eeg,
+                    showEeg: widget.lanes != LaneSet.movement,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: _play,
+                      builder: (context, _) => CustomPaint(
+                        key: const ValueKey('playhead'),
+                        painter: _PlayheadPainter(_play.value, show: _play.value > 0),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+          AnimatedBuilder(
+            animation: _play,
+            builder: (context, _) => Row(children: [
+              IconButton.filled(
+                key: const ValueKey('play'),
+                tooltip: _play.isAnimating ? 'Pause' : 'Play through the event',
+                style: IconButton.styleFrom(backgroundColor: AppColors.navy, foregroundColor: AppColors.onNavy),
+                icon: Icon(_play.isAnimating ? Icons.pause : Icons.play_arrow),
+                onPressed: _toggle,
+              ),
+              Expanded(
+                child: Slider(
+                  key: const ValueKey('playback'),
+                  value: _play.value.clamp(0.0, 1.0),
+                  onChanged: (v) => _play.value = v,
+                ),
+              ),
+              Text('${clockMinutes(_play.value * duration)} / ${clockMinutes(duration)}',
+                  key: const ValueKey('playback-time'), style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            ]),
+          ),
+        ]);
+      },
+    );
+  }
+}
+
+class _PlayheadPainter extends CustomPainter {
+  final double fraction;
+  final bool show;
+  _PlayheadPainter(this.fraction, {required this.show});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (!show) return;
+    final x = fraction.clamp(0.0, 1.0) * size.width;
+    canvas.drawLine(Offset(x, 0), Offset(x, size.height - 18), Paint()..color = AppColors.accent..strokeWidth = 2);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlayheadPainter old) => old.fraction != fraction || old.show != show;
 }
 
 /// Confirm and Dismiss, with the status and Undo under them. They stay at the foot
@@ -153,9 +383,11 @@ class EventSheetFooter extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Row(children: [
-                  Expanded(child: _DecisionButton(key: const ValueKey('confirm'), label: 'Confirm', color: AppColors.success, active: sel.status == ReviewStatus.confirmed, onPressed: c.confirm)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _DecisionButton(key: const ValueKey('dismiss'), label: 'Dismiss', color: AppColors.textSecondary, active: sel.status == ReviewStatus.dismissed, onPressed: c.dismiss)),
+                  Expanded(child: _DecisionButton(key: const ValueKey('confirm'), label: 'This was a seizure', color: AppColors.danger, active: sel.status == ReviewStatus.confirmed, onPressed: c.confirm)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _DecisionButton(key: const ValueKey('dismiss'), label: 'Not a seizure', color: AppColors.textSecondary, active: sel.status == ReviewStatus.dismissed, onPressed: c.dismiss)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _DecisionButton(key: const ValueKey('unsure'), label: 'Not sure', color: AppColors.accent, active: sel.status == ReviewStatus.unsure, onPressed: c.markUnsure)),
                 ]),
                 const SizedBox(height: 4),
                 Row(children: [
@@ -207,11 +439,12 @@ class _DecisionButton extends StatelessWidget {
         backgroundColor: active ? color : color.withValues(alpha: 0.10),
         foregroundColor: active ? Colors.white : color,
         side: BorderSide(color: color),
-        minimumSize: const Size(0, 46),
+        minimumSize: const Size(0, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       onPressed: onPressed,
-      child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+      child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
     );
   }
 }

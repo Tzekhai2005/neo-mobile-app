@@ -129,6 +129,7 @@ TraceData windowTraceData(
   required double eventDurationSec,
   double eegScaleUv = kDefaultEegScaleUv,
   bool showMotion = true,
+  bool showEeg = true,
   List<TraceMarker> markers = const [],
 }) {
   final duration = w.durationSec;
@@ -145,6 +146,7 @@ TraceData windowTraceData(
       imuRateHz: w.imuRateHz,
       eegScaleUv: eegScaleUv,
       showMotion: showMotion,
+      showEeg: showEeg,
     ),
     durationSec: duration,
     markers: [TraceMarker(w.preSec, label: 'start', color: AppColors.navy), ...markers],

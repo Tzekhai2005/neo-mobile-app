@@ -28,12 +28,14 @@ String statusName(ReviewStatus s) => switch (s) {
       ReviewStatus.candidate => 'Unreviewed',
       ReviewStatus.confirmed => 'Confirmed',
       ReviewStatus.dismissed => 'Dismissed',
+      ReviewStatus.unsure => 'Not sure',
     };
 
 Color statusColor(ReviewStatus s) => switch (s) {
       ReviewStatus.candidate => AppColors.warning,
       ReviewStatus.confirmed => AppColors.success,
       ReviewStatus.dismissed => AppColors.textMuted,
+      ReviewStatus.unsure => AppColors.accent,
     };
 
 /// The small mark at the start of a row: a circle for an event, a diamond for a
@@ -329,6 +331,7 @@ class FilterChips extends StatelessWidget {
         ReviewFilter.unreviewed => 'Unreviewed',
         ReviewFilter.confirmed => 'Confirmed',
         ReviewFilter.dismissed => 'Dismissed',
+        ReviewFilter.unsure => 'Not sure',
       };
 
   @override

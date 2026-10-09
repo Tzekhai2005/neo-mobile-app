@@ -38,6 +38,7 @@ class TimelineCluster {
   ReviewStatus get status {
     if (events.any((e) => e.status == ReviewStatus.candidate)) return ReviewStatus.candidate;
     if (events.any((e) => e.status == ReviewStatus.confirmed)) return ReviewStatus.confirmed;
+    if (events.any((e) => e.status == ReviewStatus.unsure)) return ReviewStatus.unsure;
     return ReviewStatus.dismissed;
   }
 }

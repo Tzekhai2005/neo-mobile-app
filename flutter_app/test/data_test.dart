@@ -281,6 +281,21 @@ void main() {
       expect(d.updatedAt.isUtc, isTrue);
     });
 
+    test('"not sure" is saved and read back like the others, and a file without it still loads', () async {
+      final a = store('k1');
+      await a.load();
+      await a.setStatus('e7', ReviewStatus.unsure);
+      final b = store('k1');
+      await b.load();
+      expect(b.decisionFor('e7')!.status, ReviewStatus.unsure);
+      expect(file.readAsStringSync(), contains('unsure'));
+      // a file from before "not sure" existed has only the old three
+      file.writeAsStringSync(file.readAsStringSync().replaceAll('unsure', 'dismissed'));
+      final c = store('k1');
+      await c.load();
+      expect(c.decisionFor('e7')!.status, ReviewStatus.dismissed);
+    });
+
     test('status keeps the note, note keeps the status, defaults are not stored', () async {
       final s = store('k1');
       await s.load();

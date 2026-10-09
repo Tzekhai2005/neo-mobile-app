@@ -34,7 +34,18 @@ void main() {
       expect(ev('a', 1, score: 0.9).isMarker, isFalse);
     });
 
-    test('reviewed means confirmed or dismissed, not merely noted', () {
+    test('not sure counts as looked at, but is neither confirmed nor dismissed', () {
+      final u = ev('a', 1, score: 0.5, status: ReviewStatus.unsure);
+      expect(u.isReviewed, isTrue);
+      expect(passesFilter(u, ReviewFilter.unsure), isTrue);
+      expect(passesFilter(u, ReviewFilter.confirmed), isFalse);
+      expect(passesFilter(u, ReviewFilter.dismissed), isFalse);
+      expect(passesFilter(u, ReviewFilter.unreviewed), isFalse);
+      final c = ReviewCounts.of([u, ev('b', 2, score: 0.5), ev('c', 3, score: 0.5, status: ReviewStatus.confirmed)]);
+      expect((c.total, c.unsure, c.unreviewed, c.confirmed, c.reviewed), (3, 1, 1, 1, 2));
+    });
+
+    test('reviewed means confirmed, dismissed or not sure, not merely noted', () {
       expect(ev('a', 1, score: 0.5).isReviewed, isFalse);
       expect(ev('a', 1, score: 0.5, note: 'carer saw it').isReviewed, isFalse);
       expect(ev('a', 1, score: 0.5, status: ReviewStatus.confirmed).isReviewed, isTrue);

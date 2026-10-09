@@ -126,6 +126,9 @@ class ReportSummary {
   final int confirmed;
   final int dismissed;
   final int unreviewed;
+
+  /// Events the reviewer marked "not sure": looked at, but neither confirmed nor dismissed.
+  final int unsure;
   final int nightCandidates;
   final int dayCandidates;
 
@@ -143,6 +146,7 @@ class ReportSummary {
     required this.confirmed,
     required this.dismissed,
     required this.unreviewed,
+    this.unsure = 0,
     required this.nightCandidates,
     required this.dayCandidates,
     required this.patientMarkers,

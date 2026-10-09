@@ -6,6 +6,7 @@ import '../app/app_services.dart';
 import '../data/recording_source.dart';
 import '../data/review_event.dart';
 import '../report/report_models.dart';
+import 'event_similarity.dart';
 import 'event_spark.dart';
 import 'review_models.dart';
 import 'timeline_model.dart';
@@ -138,6 +139,7 @@ class ReviewController extends ChangeNotifier {
         ReviewStatus.candidate => 'unreviewed',
         ReviewStatus.confirmed => 'confirmed',
         ReviewStatus.dismissed => 'dismissed',
+        ReviewStatus.unsure => 'not sure',
       },
       dateLabel(local),
       '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
@@ -219,6 +221,7 @@ class ReviewController extends ChangeNotifier {
       _events = _s.reviewEvents();
       _windows.clear();
       _sparks.clear();
+      _features.clear();
       _firstDay = 0;
       _selectedId = null;
       _version++;
@@ -384,6 +387,7 @@ class ReviewController extends ChangeNotifier {
 
   Future<void> confirm() => _decide(ReviewStatus.confirmed);
   Future<void> dismiss() => _decide(ReviewStatus.dismissed);
+  Future<void> markUnsure() => _decide(ReviewStatus.unsure);
 
   /// Back to unreviewed. A note is kept.
   Future<void> undo() => _decide(ReviewStatus.candidate);
@@ -449,6 +453,40 @@ class ReviewController extends ChangeNotifier {
           return null;
         }
       });
+
+  final Map<String, Future<EventFeatures?>> _features = {};
+
+  Future<EventFeatures?> _featuresFor(String id) => _features.putIfAbsent(id, () async {
+        try {
+          final w = await _s.recording.eventWindow(id);
+          final e = _events.firstWhere((e) => e.event.id == id);
+          return featuresOf(w, e.event.durationSec(info.eegRateHz));
+        } catch (_) {
+          _features.remove(id);
+          return null;
+        }
+      });
+
+  /// How many of the confirmed events [id] looks like. Only automatic events are
+  /// compared, and never with themselves. When nothing is confirmed there is
+  /// nothing to compare with, and `compared` is 0.
+  Future<SimilarEvents> similarTo(String id) async {
+    final confirmed = [
+      for (final e in _events)
+        if (e.status == ReviewStatus.confirmed && !e.isMarker && e.event.id != id) e.event.id
+    ];
+    if (confirmed.isEmpty) return const SimilarEvents(0, 0);
+    final mine = await _featuresFor(id);
+    if (mine == null) return const SimilarEvents(0, 0);
+    var similar = 0, compared = 0;
+    for (final other in confirmed) {
+      final f = await _featuresFor(other);
+      if (f == null) continue;
+      compared++;
+      if (featureDistance(mine, f) <= kSimilarDistance) similar++;
+    }
+    return SimilarEvents(similar, compared);
+  }
 
   /// The timeline at the current zoom for a view [width] pixels wide.
   TimelineSnapshot snapshotFor(double width) {

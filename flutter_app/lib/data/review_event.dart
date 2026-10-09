@@ -2,7 +2,7 @@
 enum EventSource { auto, patientButton, manual }
 
 /// What the reviewer decided about an event.
-enum ReviewStatus { candidate, confirmed, dismissed }
+enum ReviewStatus { candidate, confirmed, dismissed, unsure }
 
 /// Where an event's full-rate signal window sits inside `windows.bin`.
 class EventWindowRef {

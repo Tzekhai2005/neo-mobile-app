@@ -119,7 +119,7 @@ class ReportBuilder {
     if (lastDay < 0) lastDay = recordingDays - 1;
     final days = recordingDays; // arrays are indexed by the day of the recording
 
-    var candidates = 0, high = 0, confirmed = 0, dismissed = 0, unreviewed = 0;
+    var candidates = 0, high = 0, confirmed = 0, dismissed = 0, unreviewed = 0, unsure = 0;
     var night = 0, markers = 0;
     final dayCandidates = List<int>.filled(days, 0);
     final dayConfirmed = List<int>.filled(days, 0);
@@ -151,6 +151,8 @@ class ReportBuilder {
           dismissed++;
         case ReviewStatus.candidate:
           unreviewed++;
+        case ReviewStatus.unsure:
+          unsure++;
       }
     }
 
@@ -164,6 +166,7 @@ class ReportBuilder {
       confirmed: confirmed,
       dismissed: dismissed,
       unreviewed: unreviewed,
+      unsure: unsure,
       nightCandidates: night,
       dayCandidates: candidates - night,
       patientMarkers: markers,
