@@ -9,20 +9,14 @@ class NeoDeviceInfo {
   final int ctrlPort;
   final String name;
   final int role;
-  double uvPerCountCh1;
-  double uvPerCountCh2;
-  int batteryPct;
-  int batteryMv;
 
-  NeoDeviceInfo({
+  /// A device that announced itself with a HELLO. What it reports about itself (its
+  /// battery, its scales) comes later, from INFO and STATUS, and is kept elsewhere.
+  const NeoDeviceInfo({
     required this.ip,
     required this.ctrlPort,
     required this.name,
     required this.role,
-    this.uvPerCountCh1 = 0.04808,
-    this.uvPerCountCh2 = 0.04808,
-    this.batteryPct = 100,
-    this.batteryMv = 4200,
   });
 }
 
@@ -91,9 +85,6 @@ class NeoClient implements DeviceEventSource {
   DateTime _lastDataAt = DateTime.now();
   Timer? _watchdog;
   bool _disposed = false;
-
-  final StreamController<EegSample> _eegStreamCtrl = StreamController<EegSample>.broadcast();
-  Stream<EegSample> get eegStream => _eegStreamCtrl.stream;
 
   final StreamController<NeoDeviceInfo> _deviceDiscoveryCtrl = StreamController<NeoDeviceInfo>.broadcast();
   Stream<NeoDeviceInfo> get onDeviceDiscovered => _deviceDiscoveryCtrl.stream;
@@ -189,12 +180,6 @@ class NeoClient implements DeviceEventSource {
     final msg = NeoDecoder.decode(pkt);
     if (msg == null) return; // reserved or unknown type: ignored (§2)
     _emit(_messageCtrl, msg);
-    if (msg is NeoEegPacket) {
-      _emitEegSamples(msg);
-    } else if (msg is NeoStatus) {
-      connectedDevice?.batteryPct = msg.batteryPct;
-      connectedDevice?.batteryMv = msg.batteryMv;
-    }
   }
 
   void _setState(NeoConnState s) {
@@ -236,10 +221,6 @@ class NeoClient implements DeviceEventSource {
       final deviceInfo = NeoInfo.decode(infoReply.data);
       if (deviceInfo != null) {
         info = deviceInfo;
-        if (deviceInfo.uvPerCount.every((v) => v > 0)) {
-          dev.uvPerCountCh1 = deviceInfo.uvPerCount[0];
-          dev.uvPerCountCh2 = deviceInfo.uvPerCount[1];
-        }
         _emit(_infoCtrl, deviceInfo);
       }
 
@@ -342,32 +323,6 @@ class NeoClient implements DeviceEventSource {
     if (wasActive) _emit(_connectionStateCtrl, false);
   }
 
-  /// One EegSample per sample in a decoded EEG packet, scaled to µV.
-  void _emitEegSamples(NeoEegPacket p) {
-    final dev = connectedDevice;
-    final scale = <double>[
-      dev?.uvPerCountCh1 ?? 0.04808,
-      dev?.uvPerCountCh2 ?? 0.04808,
-    ];
-    for (var i = 0; i < p.samples.length; i++) {
-      final raw = p.samples[i].counts;
-      final channels = [for (var c = 0; c < raw.length; c++) raw[c] * scale[c < scale.length ? c : scale.length - 1]];
-      _emit(
-        _eegStreamCtrl,
-        EegSample(
-          sampleIdx: p.indexOf(i),
-          loff: p.samples[i].loff,
-          ch1Uv: channels[0],
-          ch2Uv: channels.length > 1 ? channels[1] : 0.0,
-          ch3Uv: channels.length > 2 ? channels[2] : 0.0,
-          ch4Uv: channels.length > 3 ? channels[3] : 0.0,
-          channelsUv: channels,
-          source: EegSource.rawUdp,
-        ),
-      );
-    }
-  }
-
   Future<void> stop() async {
     if (_state == NeoConnState.searching) return;
     final sock = _tcpSocket;
@@ -383,7 +338,6 @@ class NeoClient implements DeviceEventSource {
     _tcpSocket?.destroy(); // closing TCP stops the stream (§7.2)
     _tcpSocket = null;
     _udpSocket?.close();
-    _eegStreamCtrl.close();
     _deviceDiscoveryCtrl.close();
     _statusCtrl.close();
     _connectionStateCtrl.close();

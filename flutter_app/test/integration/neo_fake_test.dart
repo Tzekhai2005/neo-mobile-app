@@ -7,7 +7,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neo_companion/protocol/neo_client.dart';
-import 'package:neo_companion/protocol/neo_proto.dart';
+import 'package:neo_companion/protocol/neo_messages.dart';
 
 Future<bool> _until(bool Function() cond, Duration limit) async {
   final end = DateTime.now().add(limit);
@@ -27,11 +27,17 @@ void main() {
     fake.stdout.drain<void>();
     fake.stderr.drain<void>();
     final client = NeoClient();
-    final samples = <EegSample>[];
+    final samples = <({int idx, int channels})>[]; // one entry per EEG sample, from the packets
     final stallChanges = <bool>[];
     StreamSubscription<NeoDeviceInfo>? autoConnect;
     try {
-      client.eegStream.listen(samples.add);
+      client.messages.listen((m) {
+        if (m is NeoEegPacket) {
+          for (var i = 0; i < m.samples.length; i++) {
+            samples.add((idx: m.indexOf(i), channels: m.channels));
+          }
+        }
+      });
       client.onDataStalledChanged.listen(stallChanges.add);
       await client.startDiscovery();
 
@@ -42,7 +48,7 @@ void main() {
       final ok = await client.connectAndStart(dev);
       expect(ok, isTrue, reason: 'GET_INFO + START must both be ACKed');
       expect(client.state, NeoConnState.connected);
-      expect(dev.uvPerCountCh1, closeTo(0.04808, 1e-4), reason: 'scale comes from INFO');
+      expect(client.info!.uvPerCount.first, closeTo(0.04808, 1e-4), reason: 'scale comes from INFO');
 
       // 2. steady stream
       await Future<void>.delayed(const Duration(seconds: 2));
@@ -50,9 +56,9 @@ void main() {
       // ignore: avoid_print
       print('after 2 s: $n samples (expect ~500 at 250 SPS)');
       expect(n, inInclusiveRange(380, 620));
-      expect(samples.first.channelsUv.length, 2);
+      expect(samples.first.channels, 2);
       for (var i = 1; i < samples.length; i++) {
-        expect(samples[i].sampleIdx - samples[i - 1].sampleIdx, 1, reason: 'contiguous index at $i');
+        expect(samples[i].idx - samples[i - 1].idx, 1, reason: 'contiguous index at $i');
       }
       expect(client.badPackets, 0);
 

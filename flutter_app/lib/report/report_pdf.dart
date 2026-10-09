@@ -61,7 +61,7 @@ class ReportPdf {
   static const double _contentWidth = 595.28 - 2 * _margin;
   static const double _gutter = 38; // left of every signal chart: channel labels
 
-  /// A file name that is safe on every platform, e.g. `neuravance-eeg-report-20261005.pdf`.
+  /// A file name that is safe on every platform, e.g. `epile-x-eeg-report-20261005.pdf`.
   static String suggestedFileName(ReportData data) {
     final brand = data.header.brand.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '');
     final d = data.header.recordingStartLocal;
@@ -109,12 +109,14 @@ class ReportPdf {
       : _safe = textFilter(fonts),
         _theme = _themeFor(fonts);
 
+  static String _brandLine(ReportHeader h) => h.byline.isEmpty ? h.brand : '${h.brand} ${h.byline}';
+
   Future<Uint8List> _render(ReportData data, bool compress) async {
     final doc = pw.Document(
       compress: compress,
       title: _safe('EEG review report'),
-      author: _safe(data.header.brand),
-      creator: _safe(data.header.brand),
+      author: _safe(_brandLine(data.header)),
+      creator: _safe(_brandLine(data.header)),
       subject: _safe(data.header.synthetic ? 'Sample recording (synthetic data)' : 'EEG review report'),
     );
     doc.addPage(pw.MultiPage(
@@ -199,6 +201,7 @@ class ReportPdf {
         child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
           pw.Row(children: [
             _text(d.header.brand, size: 10, bold: true),
+            if (d.header.byline.isNotEmpty) ...[pw.SizedBox(width: 5), _text(d.header.byline, size: 9, color: _muted)],
             pw.Spacer(),
             _text('EEG review report', size: 9, color: _muted),
           ]),

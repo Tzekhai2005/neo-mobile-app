@@ -66,6 +66,7 @@ class ReportBuilder {
     return ReportData(
       header: ReportHeader(
         brand: kBrandName,
+        byline: kBrandByline,
         generatedAtUtc: generatedAtUtc,
         recordingStartLocal: info.localTimeAt(t0),
         recordingEndLocal: info.localTimeAt(t1),

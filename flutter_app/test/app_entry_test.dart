@@ -8,10 +8,9 @@ import 'package:neo_companion/data/dataset_readers.dart';
 import 'package:neo_companion/main.dart';
 import 'package:neo_companion/protocol/neo_client.dart';
 import 'package:neo_companion/ui/home/home_page.dart';
-import 'package:neo_companion/ui/standalone_screen.dart';
 
 void main() {
-  testWidgets('the app opens on the new start page, not the old screen', (t) async {
+  testWidgets('the app opens on the start page', (t) async {
     final dir = Directory.systemTemp.createTempSync('neo_entry_');
     addTearDown(() => dir.deleteSync(recursive: true));
     final s = AppServices(client: NeoClient(), dataDir: dir, reader: DirectoryDatasetReader('test/fixtures/mini_recording'));
@@ -25,7 +24,8 @@ void main() {
     await t.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(HomePage), findsOneWidget);
-    expect(find.byType(StandaloneScreen), findsNothing);
+    expect(find.text('Diary'), findsNothing, reason: 'the old three-tab screen is gone');
+    expect(find.text('Raw EEG'), findsNothing);
     expect(find.text('Live data'), findsOneWidget, reason: 'the new start page\'s main card');
   });
 }

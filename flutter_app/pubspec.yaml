@@ -1,5 +1,5 @@
 name: neo_companion
-description: "Neo Ear-EEG Clinical Companion — standalone hardware direct mode"
+description: "Epile-X by NeuraVance Labs: the companion app for the Neo ear-EEG device"
 publish_to: "none"
 version: 2.1.0+3
 

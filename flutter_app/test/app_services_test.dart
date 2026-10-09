@@ -18,7 +18,6 @@ import 'package:neo_companion/protocol/neo_client.dart';
 import 'package:neo_companion/report/report_exporter.dart';
 import 'package:neo_companion/report/report_models.dart';
 import 'package:neo_companion/report/report_selection.dart';
-import 'package:neo_companion/ui/standalone_screen.dart';
 
 const mini = 'test/fixtures/mini_recording';
 const mini4 = 'test/fixtures/mini_recording_4ch';
@@ -417,24 +416,6 @@ void main() {
         return const SizedBox();
       }));
       expect(tester.takeException(), isA<FlutterError>().having((e) => e.toString(), 'text', contains('AppScope')));
-    });
-  });
-
-  group('the existing screen on the shared connection', () {
-    testWidgets('renders from the services, and leaves the connection running when it closes', (tester) async {
-      final s = services();
-      var closed = false;
-      await tester.pumpWidget(AppScope(services: s, child: const MaterialApp(home: StandaloneScreen())));
-      await tester.pump();
-      expect(find.text('DISCONNECTED'), findsWidgets);
-
-      await tester.pumpWidget(const SizedBox()); // the screen goes away
-      await tester.pump(const Duration(seconds: 3)); // its timers must be gone
-      // The client belongs to the app: it is still usable after the screen disposed.
-      s.client.messages.listen((_) {}, onDone: () => closed = true);
-      await tester.pump();
-      expect(closed, isFalse, reason: 'the screen must not shut the app\'s connection down');
-      expect(s.client.state, NeoConnState.searching);
     });
   });
 }

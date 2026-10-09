@@ -12,8 +12,8 @@ opens the phone's share sheet with the two files in it:
 
 ```
 reports/report-20261007-093000/            (named from the time it was generated)
-├── neuravance-eeg-report-20261005.pdf     the report (dated by the recording start)
-└── neuravance-eeg-report-20261005-data.zip
+├── epile-x-eeg-report-20261005.pdf        the report (dated by the recording start)
+└── epile-x-eeg-report-20261005-data.zip
     └── csv/
         ├── events.csv                     one row per event in the report
         ├── e0009_eeg.csv                  full-rate EEG around that event
@@ -66,7 +66,7 @@ A4, four pages for a typical report:
    bar), accelerometer, gyro, and a shared time axis in seconds from the event start.
 3. **Last page: method and limitations**, the disclaimer, and a "Reviewed by / Date" line.
 
-Every page carries the disclaimer ("Research prototype. Not a medical device and not for
+Every page's header names the product and the company ("Epile-X by NeuraVance Labs", from `lib/config/app_config.dart`; the file name uses the product name alone). Every page carries the disclaimer ("Research prototype. Not a medical device and not for
 clinical use…"). A synthetic recording adds a red **SAMPLE RECORDING** banner to every
 page. Signals are shown as recorded, in microvolts, g and degrees per second, with no
 filtering.

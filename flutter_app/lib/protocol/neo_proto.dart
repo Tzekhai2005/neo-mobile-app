@@ -115,33 +115,6 @@ class NeoProto {
   }
 }
 
-enum EegSource {
-  rawUdp,
-}
-
-/// Parsed EEG Sample
-class EegSample {
-  final int sampleIdx;
-  final int loff;
-  final double ch1Uv;
-  final double ch2Uv;
-  final double ch3Uv;
-  final double ch4Uv;
-  final List<double> channelsUv;
-  final EegSource source;
-
-  EegSample({
-    required this.sampleIdx,
-    required this.loff,
-    required this.ch1Uv,
-    required this.ch2Uv,
-    this.ch3Uv = 0.0,
-    this.ch4Uv = 0.0,
-    this.channelsUv = const [],
-    this.source = EegSource.rawUdp,
-  });
-}
-
 /// A validated packet: header fields plus the payload (CRC stripped).
 class NeoPacket {
   final int type;

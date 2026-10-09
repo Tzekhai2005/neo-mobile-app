@@ -78,7 +78,7 @@ void main() {
   group('file name', () {
     test('is lower-case, safe and dated by the recording start', () async {
       final d = await reportFor(mini);
-      expect(ReportPdf.suggestedFileName(d), 'neuravance-eeg-report-20261005.pdf');
+      expect(ReportPdf.suggestedFileName(d), 'epile-x-eeg-report-20261005.pdf');
       final h = d.header;
       final odd = ReportData(
         header: ReportHeader(
@@ -118,9 +118,42 @@ void main() {
       expect(raw, contains('595.27')); // A4 width in points
       expect(pages(raw), greaterThanOrEqualTo(3), reason: 'summary, events, method');
       final text = wordsOf(raw);
-      for (final s in ['EEG review report', 'Neuravance', 'SAMPLE RECORDING', 'Not a medical device', 'Demo patient']) {
+      for (final s in ['EEG review report', 'Epile-X', 'by NeuraVance Labs', 'SAMPLE RECORDING', 'Not a medical device', 'Demo patient']) {
         expect(text, contains(s), reason: s);
       }
+    });
+
+    test('with no company line the header is just the product name, and the file name is unchanged', () async {
+      final d = await reportFor(mini, confirmTop: 1);
+      final h = d.header;
+      final bare = ReportData(
+        header: ReportHeader(
+          brand: h.brand,
+          byline: '',
+          generatedAtUtc: h.generatedAtUtc,
+          recordingStartLocal: h.recordingStartLocal,
+          recordingEndLocal: h.recordingEndLocal,
+          utcOffsetMinutes: h.utcOffsetMinutes,
+          durationSec: h.durationSec,
+          eegRateHz: h.eegRateHz,
+          eegChannels: h.eegChannels,
+          imuRateHz: h.imuRateHz,
+          synthetic: h.synthetic,
+          generator: h.generator,
+          datasetKey: h.datasetKey,
+          device: h.device,
+          patientLabel: h.patientLabel,
+        ),
+        summary: d.summary,
+        entries: d.entries,
+        selectionIsFallback: d.selectionIsFallback,
+        overview: d.overview,
+        timeline: d.timeline,
+      );
+      final text = await readable(bare);
+      expect(text, contains('Epile-X'));
+      expect(text, isNot(contains('by NeuraVance Labs')));
+      expect(ReportPdf.suggestedFileName(bare), ReportPdf.suggestedFileName(d));
     });
 
     test('shows the events, the reviewer note, and what the figures say', () async {

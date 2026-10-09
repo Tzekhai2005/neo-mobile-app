@@ -2,19 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.aightech.neo_companion">
 
-    <!-- Network access for streaming from companion server -->
+    <!-- Network access: the Neo device on the local Wi-Fi (UDP discovery and data, TCP control) -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
 
     <application
-        android:label="Neo Ear-EEG"
+        android:label="Epile-X"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
-        <!-- usesCleartextTraffic = true allows http:// (not just https://)
-             Required so the APK can reach the companion server on local Wi-Fi -->
+        <!-- usesCleartextTraffic = true allows plain http:// as well as https:// -->
 
         <activity
             android:name=".MainActivity"

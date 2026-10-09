@@ -1,6 +1,6 @@
-# Neuravance Neo companion app
+# Epile-X by NeuraVance Labs: companion app
 
-A Flutter app (Android first) for the **Neo ear-EEG** device. It finds the device on Wi-Fi,
+Epile-X is a Flutter app (Android first) for the **Neo ear-EEG** device. It finds the device on Wi-Fi,
 streams EEG and motion data, lets a reviewer go through the events found in a long
 recording, and produces a clinic-style PDF report with CSV data. This is a **research
 prototype, not a medical device**.
@@ -16,9 +16,10 @@ prototype, not a medical device**.
 | **Built, tested on a Mac** | The **Report page**: choose events by preset or tick box (grouped by band, with a box for each whole band), choose which days to cover, a patient label that is remembered, then Create report, look at the real PDF pages in the app, and Share |
 | **Not built** | A PDF preview that has been tried on a phone (it uses the platform's PDF renderer, which only a phone can check); recording a live session to storage; link-loss and lead-off percentages in the report (they need that recorder); background recording; non-Latin text beyond Greek and Cyrillic in the PDF |
 
-The old screen (`flutter_app/lib/ui/standalone_screen.dart`) is no longer reachable and will be
-deleted once the new pages are done. The demo recording is **synthetic** (made up by a
-script), and says so in every report.
+The demo recording is **synthetic** (made up by a script), and says so in every report. The
+product name and the company line ("Epile-X", "by NeuraVance Labs") are set in
+`flutter_app/lib/config/app_config.dart`; the name on the phone's launcher is in
+`flutter_app/android/app/src/main/AndroidManifest.xml`, and a test keeps the two the same.
 
 ## Documentation
 
@@ -101,8 +102,8 @@ flutter_app/
   lib/data/       recording format, importer, review decisions
   lib/report/     report model, CSV, PDF, export, fonts
   lib/app/        AppServices (the one owner) and AppScope
-  lib/ui/         the old screen
-  assets/         demo_recording/ (synthetic) and fonts/ (Noto Sans)
+  lib/review/     the Review page's logic       lib/ui/   every page, the theme and the shared signal view
+  assets/         demo_recording/ (synthetic), fonts/ (Noto Sans) and brand/ (the logo)
   test/           unit tests; test/integration/ needs neo-fake
   tool/           make_sample_report.dart
 tools/            make_demo_dataset.py, write_recording_example.py

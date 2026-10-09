@@ -1,8 +1,8 @@
 # How the app is put together
 
-The app is Flutter (Dart), Android first. The data layer, the live data path, the report
-and the export are built and tested. **The only screen is the old one** (`lib/ui/`); the
-new pages (start page, Data, Review, Report) are not built, and have not been designed yet.
+The app is Flutter (Dart), Android first. The data layer, the live data path, the report and the
+export are built, and so are all four screens: the start page and the Data, Review and Report
+tabs. All of it is tested on a Mac; what has run on a real phone is listed at the end.
 
 ## The layers
 
@@ -32,8 +32,7 @@ new pages (start page, Data, Review, Report) are not built, and have not been de
              AppScope            hands AppServices to every page
  ui/         theme/app_theme.dart     every colour in one place (the Epile-X palette)
              home/ shell/ widgets/    the start page, the three tabs and the device strip
-             trace/                   the shared signal view (below)
-             standalone_screen.dart   the old screen (no longer reachable; deleted when the new pages are done)
+             trace/ data/ review/ report/   the shared signal view and the three tab pages (below)
 ```
 
 ## The signal view (`ui/trace/`)
@@ -206,8 +205,8 @@ The integration tests need `neo-fake` on the PATH (`pip install -e` of the Neura
 `software/protocol/python` package) and ports UDP 5000 and TCP 5001 free. They must run
 **one at a time**, which `--concurrency=1` does. They cover discovery, the handshake, a
 live stream, real packet loss, the no-data flag, the 3 s drop and automatic reconnect,
-battery and button events, and exporting a report while streaming. The old screen is also
-tested against live data.
+battery and button events, exporting a report while streaming, the activity readout, and the
+start page showing the real connection and battery.
 
 Some tests run the Python tools in `tools/` (`python3` must be installed).
 

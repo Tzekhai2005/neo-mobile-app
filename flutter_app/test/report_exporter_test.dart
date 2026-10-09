@@ -52,8 +52,8 @@ void main() {
     final r = await ReportExporter(outputDir: out).export(data);
 
     expect(r.dir.path, endsWith('report-20261007-093000'));
-    expect(r.pdf.path, endsWith('neuravance-eeg-report-20261005.pdf'));
-    expect(r.csvZip.path, endsWith('neuravance-eeg-report-20261005-data.zip'));
+    expect(r.pdf.path, endsWith('epile-x-eeg-report-20261005.pdf'));
+    expect(r.csvZip.path, endsWith('epile-x-eeg-report-20261005-data.zip'));
     expect(r.pdf.parent.path, r.dir.path);
     expect(r.csvZip.parent.path, r.dir.path);
 
@@ -93,7 +93,7 @@ void main() {
     final r = await ReportExporter(outputDir: out, sharer: sharer).export(data, share: true);
     expect(sharer.calls.length, 1);
     expect(sharer.calls.single.$1, [r.pdf.path, r.csvZip.path]);
-    expect(sharer.calls.single.$2, 'Neuravance EEG review report');
+    expect(sharer.calls.single.$2, 'Epile-X EEG review report');
   });
 
   test('without share: true nothing is shared', () async {

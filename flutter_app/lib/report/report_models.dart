@@ -21,6 +21,9 @@ class ReportDevice {
 
 class ReportHeader {
   final String brand;
+
+  /// The company line shown beside the brand ("by NeuraVance Labs"); empty for none.
+  final String byline;
   final DateTime generatedAtUtc;
   final DateTime recordingStartLocal; // wall clock at the recording site
   final DateTime recordingEndLocal;
@@ -47,6 +50,7 @@ class ReportHeader {
 
   const ReportHeader({
     required this.brand,
+    this.byline = '',
     required this.generatedAtUtc,
     required this.recordingStartLocal,
     required this.recordingEndLocal,

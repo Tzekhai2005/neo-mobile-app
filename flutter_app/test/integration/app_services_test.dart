@@ -12,7 +12,8 @@ import 'package:neo_companion/app/app_services.dart';
 import 'package:neo_companion/data/dataset_readers.dart';
 import 'package:neo_companion/device/device_status.dart';
 import 'package:neo_companion/report/report_exporter.dart';
-import 'package:neo_companion/ui/standalone_screen.dart';
+import 'package:neo_companion/ui/home/home_page.dart';
+import 'package:neo_companion/ui/theme/app_theme.dart';
 
 Future<bool> _until(bool Function() cond, Duration limit) async {
   final end = DateTime.now().add(limit);
@@ -89,7 +90,7 @@ void main() {
     }
   }, skip: available ? false : skip, timeout: const Timeout(Duration(seconds: 90)));
 
-  testWidgets('the existing screen shows the real connection and the real battery from the shared owner', (tester) async {
+  testWidgets('the start page shows the real connection and the real battery from the shared owner', (tester) async {
     await tester.runAsync(() async {
       final fake = await Process.start(exe, ['--name', 'neo-screen']);
       fake.stdout.drain<void>();
@@ -98,20 +99,21 @@ void main() {
       final app = AppServices(dataDir: tmp, reader: DirectoryDatasetReader('test/fixtures/mini_recording'), sharer: FakeSharer());
       try {
         await app.start();
-        await tester.pumpWidget(AppScope(services: app, child: const MaterialApp(home: StandaloneScreen())));
-        expect(find.text('DISCONNECTED'), findsWidgets);
+        await tester.pumpWidget(AppScope(services: app, child: MaterialApp(theme: buildAppTheme(), home: const HomePage())));
+        expect(find.text('Searching for the device'), findsOneWidget);
 
         expect(await _until(() => app.status.value.link == LinkState.connected && app.status.value.batteryPct != null,
             const Duration(seconds: 10)), isTrue);
         await Future<void>.delayed(const Duration(milliseconds: 300));
         await tester.pump();
-        expect(find.text('CONNECTED'), findsWidgets);
-        expect(find.text('87%'), findsWidgets, reason: 'the Battery tile shows the real STATUS value');
+        expect(find.text('Connected \u00b7 neo-screen \u00b7 87 %'), findsOneWidget,
+            reason: 'the device pill shows the real name and the real STATUS battery');
+        expect(find.text('Streaming'), findsOneWidget, reason: 'the live card follows the real link');
 
-        await tester.pumpWidget(const SizedBox()); // the screen goes away; the owner keeps going
+        await tester.pumpWidget(const SizedBox()); // the page goes away; the owner keeps going
         await tester.pump();
         await Future<void>.delayed(const Duration(milliseconds: 600));
-        expect(app.status.value.link, LinkState.connected, reason: 'closing the screen did not drop the connection');
+        expect(app.status.value.link, LinkState.connected, reason: 'closing the page did not drop the connection');
       } finally {
         Process.killPid(fake.pid, ProcessSignal.sigcont);
         await app.dispose();

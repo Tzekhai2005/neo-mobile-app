@@ -1,5 +1,10 @@
-/// Name shown on the start page and in reports. Change it here.
-const String kBrandName = 'Neuravance';
+/// The product's name: on the start page (when there is no logo), in the PDF's header,
+/// in report file names and in the share sheet. Change it here.
+const String kBrandName = 'Epile-X';
+
+/// The company line that goes with the name ("Epile-X by NeuraVance Labs"). Empty
+/// leaves it out.
+const String kBrandByline = 'by NeuraVance Labs';
 
 /// The logo shown on the start page. Replace the file (keep the name), or point
 /// this at another asset. Empty shows [kBrandName] as text instead.
