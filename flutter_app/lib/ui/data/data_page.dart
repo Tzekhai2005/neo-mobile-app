@@ -52,7 +52,8 @@ class _DataPageState extends State<DataPage> {
       _c?.removeListener(_onChanged);
       _c?.dispose();
       _services = s;
-      _c = DataViewController(buffer: s.live, seizureMarkers: s.seizureMarkers, status: s.status)..addListener(_onChanged);
+      _c = DataViewController(buffer: s.live, seizureMarkers: s.seizureMarkers, status: s.status)
+        ..addListener(_onChanged);
     }
   }
 
@@ -89,7 +90,8 @@ class _DataPageState extends State<DataPage> {
       return;
     }
     HapticFeedback.mediumImpact();
-    messenger.showSnackBar(SnackBar(content: Text('Marked at ${clockText(m.at)}'), duration: const Duration(seconds: 2)));
+    messenger
+        .showSnackBar(SnackBar(content: Text('Marked at ${clockText(m.at)}'), duration: const Duration(seconds: 2)));
   }
 
   @override
@@ -159,15 +161,16 @@ class _Landscape extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
         child: Row(children: [
           IconButton(
-            tooltip: 'Start page',
+            tooltip: 'Home',
             icon: const Icon(Icons.home_outlined, size: 22),
             color: AppColors.textSecondary,
-            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+            onPressed: () => TabScope.goTo(context, ShellTab.home),
           ),
           Expanded(child: _DeviceLabel(status: services.status)),
           Flexible(
             flex: 4,
-            child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: DataControls(controller: controller)),
+            child: FittedBox(
+                fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: DataControls(controller: controller)),
           ),
           const SizedBox(width: 10),
           SeizureNowButton(onPressed: onSeizure, compact: true),
@@ -283,9 +286,8 @@ class LanesArea extends StatelessWidget {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           // Dragging right pulls earlier data into view.
-          onHorizontalDragUpdate: controller.paused
-              ? (d) => controller.scrollBy(d.delta.dx / box.maxWidth * controller.windowSec)
-              : null,
+          onHorizontalDragUpdate:
+              controller.paused ? (d) => controller.scrollBy(d.delta.dx / box.maxWidth * controller.windowSec) : null,
           child: SizedBox.expand(
             child: SignalLanes(data: data, onLaneTap: expanded ? null : controller.expand),
           ),
@@ -341,7 +343,8 @@ class _Waiting extends StatelessWidget {
             Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             if (hint.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(hint, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              Text(hint,
+                  textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
             ],
           ]),
         );

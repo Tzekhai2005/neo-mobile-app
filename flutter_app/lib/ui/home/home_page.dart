@@ -6,6 +6,7 @@ import '../../config/app_config.dart';
 import '../../data/review_event.dart';
 import '../format.dart';
 import '../shell/app_shell.dart';
+import '../shell/tab_scope.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/destination_tile.dart';
@@ -24,7 +25,7 @@ class _RecordingLine {
   static const loading = _RecordingLine(chip: 'Loading the recording…', review: unknownText);
 }
 
-/// The branded start page: the device, the three pages, and the recording in use.
+/// The Home tab: the branded start page with the device, the other pages, and the recording in use.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -35,15 +36,21 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   AppServices? _services;
   late Future<_RecordingLine> _recording;
+  bool _active = true;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final s = AppScope.of(context);
+    final active = TabScope.activeOf(context);
     if (!identical(s, _services)) {
       _services = s;
       _recording = _readRecording(s);
+    } else if (active && !_active) {
+      // Back from another tab: decisions or the recording may have changed.
+      _recording = _readRecording(s);
     }
+    _active = active;
   }
 
   static Future<_RecordingLine> _readRecording(AppServices s) async {
@@ -81,10 +88,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _open(int tab) async {
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AppShell(initialTab: tab)));
-    if (mounted) _reload(); // decisions may have changed
-  }
+  void _open(int tab) => TabScope.goTo(context, tab);
 
   Future<void> _chooseRecording() async {
     await showModalBottomSheet<void>(
@@ -112,7 +116,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             Center(child: DevicePill(status: s.status, loss: () => s.loss)),
             const SizedBox(height: 22),
-            LiveDataCard(status: s.status, buffer: s.live, onTap: () => _open(0)),
+            LiveDataCard(status: s.status, buffer: s.live, onTap: () => _open(ShellTab.live)),
             const SizedBox(height: 12),
             FutureBuilder<_RecordingLine>(
               future: _recording,
@@ -124,19 +128,19 @@ class _HomePageState extends State<HomePage> {
                     child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                       Expanded(
                         child: DestinationTile(
-                          icon: AppShell.tabs[1].icon,
-                          label: 'Review',
+                          icon: AppShell.tabs[ShellTab.history].icon,
+                          label: 'History',
                           line: line.review,
-                          onTap: () => _open(1),
+                          onTap: () => _open(ShellTab.history),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: DestinationTile(
-                          icon: AppShell.tabs[2].icon,
-                          label: 'Report',
+                          icon: AppShell.tabs[ShellTab.reports].icon,
+                          label: 'Reports',
                           line: 'PDF and CSV',
-                          onTap: () => _open(2),
+                          onTap: () => _open(ShellTab.reports),
                         ),
                       ),
                     ]),

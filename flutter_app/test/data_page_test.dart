@@ -15,6 +15,8 @@ import 'package:neo_companion/ui/data/data_controls.dart';
 import 'package:neo_companion/ui/data/data_page.dart';
 import 'package:neo_companion/ui/orientation.dart' as orientation;
 import 'package:neo_companion/ui/shell/app_shell.dart';
+import 'package:neo_companion/ui/widgets/brand_logo.dart';
+import 'package:neo_companion/ui/shell/tab_scope.dart';
 import 'package:neo_companion/ui/theme/app_theme.dart';
 import 'package:neo_companion/ui/trace/signal_lanes.dart';
 
@@ -424,12 +426,12 @@ void main() {
       s.status.value = connected;
       stream(s);
       await show(t, s, size: wide);
-      expect(find.byTooltip('Start page'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
     });
   });
 
   group('inside the shell', () {
-    Future<void> openShell(WidgetTester t, AppServices s, {Size size = const Size(390, 800), int tab = 0}) async {
+    Future<void> openShell(WidgetTester t, AppServices s, {Size size = const Size(390, 800), int tab = ShellTab.live}) async {
       t.view.physicalSize = size * 2;
       t.view.devicePixelRatio = 2;
       addTearDown(t.view.reset);
@@ -440,7 +442,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 200));
     }
 
-    testWidgets('the Data tab is the real page, and may be turned any way', (t) async {
+    testWidgets('the Live tab is the real page, and may be turned any way', (t) async {
       final s = services();
       s.status.value = connected;
       stream(s);
@@ -451,17 +453,17 @@ void main() {
 
     testWidgets('the other tabs keep the phone upright', (t) async {
       final s = services();
-      await openShell(t, s, tab: 1);
+      await openShell(t, s, tab: ShellTab.history);
       expect(orientations.last, [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Data')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Live')));
       await t.pump();
       expect(orientations.last, DeviceOrientation.values);
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Report')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Reports')));
       await t.pump();
       expect(orientations.last, [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
     });
 
-    testWidgets('in landscape on the Data tab the strip and the tabs give way to the lanes', (t) async {
+    testWidgets('in landscape on the Live tab the strip and the tabs give way to the lanes', (t) async {
       final s = services();
       s.status.value = connected;
       stream(s);
@@ -469,6 +471,18 @@ void main() {
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.text('Contact'), findsNothing, reason: 'the device strip is hidden');
       expect(find.byType(SignalLanes), findsOneWidget);
+    });
+
+    testWidgets('the landscape home button goes to Home, upright', (t) async {
+      final s = services();
+      s.status.value = connected;
+      stream(s);
+      await openShell(t, s, size: const Size(800, 390));
+      await t.tap(find.byTooltip('Home'));
+      await t.pump(const Duration(milliseconds: 200));
+      expect(orientations.last, [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+      expect(find.byType(DataPage, skipOffstage: false), findsOneWidget, reason: 'kept alive behind Home');
+      expect(find.byType(BrandLogo), findsOneWidget);
     });
 
     testWidgets('portrait shows the strip and the tabs as before', (t) async {
@@ -494,12 +508,12 @@ void main() {
       await openShell(t, s);
       SignalLanes anyLanes() => t.widget<SignalLanes>(find.byType(SignalLanes, skipOffstage: false));
       final before = anyLanes().data;
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Review')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('History')));
       await t.pump();
       stream(s, seconds: 2);
       await t.pump(const Duration(milliseconds: 600)); // many ticks' worth of time
       expect(identical(anyLanes().data, before), isTrue, reason: 'hidden, so not redrawn');
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Data')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Live')));
       await t.pump(); // the page learns it is shown again during this frame
       await t.pump(const Duration(milliseconds: 300));
       expect(identical(anyLanes().data, before), isFalse, reason: 'shown again, so it caught up');

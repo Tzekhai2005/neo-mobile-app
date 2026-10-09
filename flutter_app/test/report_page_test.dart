@@ -14,6 +14,7 @@ import 'package:neo_companion/report/report_exporter.dart';
 import 'package:neo_companion/review/review_models.dart';
 import 'package:neo_companion/ui/report/report_page.dart';
 import 'package:neo_companion/ui/shell/app_shell.dart';
+import 'package:neo_companion/ui/shell/tab_scope.dart';
 import 'package:neo_companion/ui/theme/app_theme.dart';
 
 import 'helpers/settle.dart';
@@ -390,13 +391,13 @@ void main() {
   group('inside the shell', () {
     testWidgets('decisions made on the Review page are there when the Report tab comes back', (t) async {
       final s = await services(t, mini);
-      await open(t, s, home: const AppShell(initialTab: 2));
+      await open(t, s, home: const AppShell(initialTab: ShellTab.reports));
       expect(key('fallback-notice'), findsOneWidget);
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Review')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('History')));
       await settle(t, 60);
       final id = s.recording.events().firstWhere((e) => e.source == EventSource.auto).id;
       await t.runAsync(() => s.reviews.setStatus(id, ReviewStatus.confirmed));
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Report')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Reports')));
       await settle(t, 60);
       expect(key('fallback-notice'), findsNothing, reason: 'something is confirmed now');
       expect(text('1 selected'), findsOneWidget);
@@ -404,12 +405,12 @@ void main() {
 
     testWidgets('a hand-made choice is not overwritten when the tab comes back', (t) async {
       final s = await services(t, mini);
-      await open(t, s, home: const AppShell(initialTab: 2));
+      await open(t, s, home: const AppShell(initialTab: ShellTab.reports));
       await t.tap(key('preset-markers'));
       await t.pump();
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Review')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('History')));
       await settle(t, 60);
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Report')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Reports')));
       await settle(t, 60);
       expect(text('1 selected'), findsOneWidget);
       expect(t.widget<Material>(find.descendant(of: key('preset-markers'), matching: find.byType(Material)).first).color, AppColors.accentSoft);
@@ -417,7 +418,7 @@ void main() {
 
     testWidgets('the tab keeps the phone upright', (t) async {
       final s = await services(t, mini);
-      await open(t, s, home: const AppShell(initialTab: 2));
+      await open(t, s, home: const AppShell(initialTab: ShellTab.reports));
       expect(find.byType(NavigationBar), findsOneWidget);
     });
   });

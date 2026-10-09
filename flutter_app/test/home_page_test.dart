@@ -12,7 +12,9 @@ import 'package:neo_companion/data/review_event.dart';
 import 'package:neo_companion/device/device_status.dart';
 import 'package:neo_companion/protocol/neo_client.dart';
 import 'package:neo_companion/report/report_exporter.dart';
-import 'package:neo_companion/ui/home/home_page.dart';
+import 'package:neo_companion/ui/shell/app_shell.dart';
+import 'package:neo_companion/ui/shell/tab_scope.dart';
+import 'package:neo_companion/ui/widgets/destination_tile.dart';
 import 'package:neo_companion/ui/theme/app_theme.dart';
 import 'package:neo_companion/ui/widgets/brand_logo.dart';
 import 'package:neo_companion/ui/widgets/device_pill.dart';
@@ -91,8 +93,15 @@ void main() {
     addTearDown(t.view.reset);
     await t.pumpWidget(AppScope(
       services: s,
-      child: MaterialApp(theme: buildAppTheme(), home: const HomePage()),
+      child: MaterialApp(theme: buildAppTheme(), home: const AppShell()),
     ));
+    await settle(t);
+  }
+
+  Finder tile(String label) => find.descendant(of: find.byType(DestinationTile), matching: find.text(label));
+
+  Future<void> navTo(WidgetTester t, String label) async {
+    await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(label)));
     await settle(t);
   }
 
@@ -102,8 +111,9 @@ void main() {
       await openHome(t, s);
       expect(find.byType(BrandLogo), findsOneWidget);
       expect(find.text('Live data'), findsOneWidget);
-      expect(find.text('Review'), findsOneWidget);
-      expect(find.text('Report'), findsOneWidget);
+      expect(find.byType(DestinationTile), findsNWidgets(2));
+      expect(tile('History'), findsOneWidget);
+      expect(tile('Reports'), findsOneWidget);
       expect(find.text('PDF and CSV'), findsOneWidget);
       expect(find.textContaining('Research prototype, not a medical device'), findsOneWidget);
       final events = s.reviewEvents().length;
@@ -183,73 +193,72 @@ void main() {
       expect(find.text('Low battery'), findsOneWidget);
     });
 
-    testWidgets('the live card opens the Data tab, and Review and Report open theirs', (t) async {
+    testWidgets('the live card opens the Live tab, and the tiles open History and Reports', (t) async {
       final s = await services(t);
       await openHome(t, s);
+      expect(tester(t).selectedTab, ShellTab.home);
       await t.tap(find.text('Live data'));
       await settle(t);
-      expect(tester(t).selectedTab, 0);
-      await t.tap(find.byTooltip('Start page'));
+      expect(tester(t).selectedTab, ShellTab.live);
+      await navTo(t, 'Home');
+      await t.tap(tile('Reports'));
       await settle(t);
-      await t.tap(find.text('Report'));
+      expect(tester(t).selectedTab, ShellTab.reports);
+      await navTo(t, 'Home');
+      await t.tap(tile('History'));
       await settle(t);
-      expect(tester(t).selectedTab, 2);
+      expect(tester(t).selectedTab, ShellTab.history);
     });
   });
 
   group('the shell', () {
-    testWidgets('a tile opens its tab, with the strip above and the tabs below', (t) async {
+    testWidgets('the app opens on Home, with the tabs below and no device strip', (t) async {
       final s = await services(t);
       s.status.value = _connected;
       await openHome(t, s);
-      await t.tap(find.text('Report'));
-      await settle(t);
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(tester(t).selectedTab, 2);
+      expect(tester(t).selectedTab, ShellTab.home);
+      expect(find.byType(BrandLogo), findsOneWidget);
+      expect(find.text('Contact'), findsNothing, reason: 'Home has its own device card');
+    });
+
+    testWidgets('the four tabs are Home, Live, History and Reports', (t) async {
+      final s = await services(t);
+      await openHome(t, s);
+      for (final label in ['Home', 'Live', 'History', 'Reports']) {
+        expect(find.descendant(of: find.byType(NavigationBar), matching: find.text(label)), findsOneWidget);
+      }
+    });
+
+    testWidgets('a tile opens its tab, with the strip above', (t) async {
+      final s = await services(t);
+      s.status.value = _connected;
+      await openHome(t, s);
+      await t.tap(tile('Reports'));
+      await settle(t);
+      expect(tester(t).selectedTab, ShellTab.reports);
       expect(find.text('Neo-4F2A'), findsOneWidget, reason: 'the strip names the device');
       expect(find.text('Contact'), findsOneWidget);
-      expect(find.byKey(const ValueKey('create-report')), findsOneWidget, reason: 'the Report page');
+      expect(find.byKey(const ValueKey('create-report')), findsOneWidget, reason: 'the Reports page');
     });
 
-    testWidgets('the tabs switch pages', (t) async {
+    testWidgets('the tabs switch pages, and Home comes back with its state', (t) async {
       final s = await services(t);
       await openHome(t, s);
-      await t.tap(find.text('Live data'));
-      await settle(t);
-      expect(tester(t).selectedTab, 0);
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Review')));
-      await t.pumpAndSettle();
-      expect(tester(t).selectedTab, 1);
-    });
-
-    testWidgets('the home icon goes back to the start page', (t) async {
-      final s = await services(t);
-      await openHome(t, s);
-      await t.tap(find.text('Review'));
-      await settle(t);
-      await t.tap(find.byTooltip('Start page'));
-      await settle(t);
+      await navTo(t, 'Live');
+      expect(tester(t).selectedTab, ShellTab.live);
+      await navTo(t, 'History');
+      expect(tester(t).selectedTab, ShellTab.history);
+      await navTo(t, 'Home');
       expect(find.byType(BrandLogo), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
-    });
-
-    testWidgets('the name in the strip also goes back', (t) async {
-      final s = await services(t);
-      s.status.value = _connected;
-      await openHome(t, s);
-      await t.tap(find.text('Live data'));
-      await settle(t);
-      await t.tap(find.text('Neo-4F2A'));
-      await settle(t);
-      expect(find.byType(BrandLogo), findsOneWidget);
+      expect(find.textContaining('Demo recording'), findsOneWidget);
     });
 
     testWidgets('the strip shows the device state, and electrode contact in its own colour', (t) async {
       final s = await services(t);
       s.status.value = _connected;
       await openHome(t, s);
-      await t.tap(find.text('Live data'));
-      await settle(t);
+      await navTo(t, 'Live');
       Color contactDot() {
         final probe = find.byWidgetPredicate((w) => w is Semantics && w.properties.label == 'Electrode contact');
         final box = t.widget<Container>(find.descendant(of: probe, matching: find.byType(Container)));

@@ -6,13 +6,12 @@ import '../../device/device_status.dart';
 import '../format.dart';
 import '../theme/app_theme.dart';
 
-/// The thin device strip at the top of every page: a way home, the device, its
-/// electrode contact, battery and Wi-Fi. It only reads [status].
+/// The thin device strip at the top of the Live, History and Reports pages: the
+/// device, its electrode contact, battery and Wi-Fi. It only reads [status].
 class StatusStrip extends StatelessWidget {
   final ValueListenable<DeviceStatus> status;
-  final VoidCallback onHome;
 
-  const StatusStrip({super.key, required this.status, required this.onHome});
+  const StatusStrip({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -31,23 +30,13 @@ class StatusStrip extends StatelessWidget {
                 ? AppColors.textMuted
                 : (s.leadOff! ? AppColors.warning : AppColors.success);
             return Row(children: [
-              IconButton(
-                tooltip: 'Start page',
-                icon: const Icon(Icons.home_outlined, size: 22),
-                color: AppColors.textSecondary,
-                onPressed: onHome,
-              ),
+              const SizedBox(width: 16),
               Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onHome,
-                  child: Text(
-                    s.name ?? kBrandName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
+                child: Text(
+                  s.name ?? kBrandName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ),
               Flexible(
@@ -56,12 +45,9 @@ class StatusStrip extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    _Dot(
-                        color:
-                            connected ? AppColors.success : AppColors.warning),
+                    _Dot(color: connected ? AppColors.success : AppColors.warning),
                     const SizedBox(width: 4),
-                    Text(connected ? linkLabel(s.link) : 'Searching',
-                        style: _small),
+                    Text(connected ? linkLabel(s.link) : 'Searching', style: _small),
                     const SizedBox(width: 12),
                     Semantics(
                       label: 'Electrode contact',
@@ -92,8 +78,6 @@ class _Dot extends StatelessWidget {
   const _Dot({required this.color});
 
   @override
-  Widget build(BuildContext context) => Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+  Widget build(BuildContext context) =>
+      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle));
 }

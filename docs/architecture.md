@@ -1,7 +1,7 @@
 # How the app is put together
 
 The app is Flutter (Dart), Android first. The data layer, the live data path, the report and the
-export are built, and so are all four screens: the start page and the Data, Review and Report
+export are built, and so are all four screens: Home and the Live, History and Reports
 tabs. All of it is tested on a Mac; what has run on a real phone is listed at the end.
 
 ## The layers
@@ -31,7 +31,7 @@ tabs. All of it is tested on a Mac; what has run on a real phone is listed at th
  app/        AppServices         the one owner of all of the above (below)
              AppScope            hands AppServices to every page
  ui/         theme/app_theme.dart     every colour in one place (the Epile-X palette)
-             home/ shell/ widgets/    the start page, the three tabs and the device strip
+             home/ shell/ widgets/    Home, the four tabs and the device strip
              trace/ data/ review/ report/   the shared signal view and the three tab pages (below)
 ```
 
@@ -66,7 +66,7 @@ into what is drawn a few times a second: the window (5, 10 or 15 s), the EEG sca
   the sample index starts over (a restart), the pause ends, because the frozen view would
   no longer mean anything. The buffer never returns overwritten samples for an old window:
   anything older than it holds reads as missing.
-* **Landscape.** The Data tab may be turned; every other page stays upright. In landscape
+* **Landscape.** The Live tab may be turned; every other page stays upright. In landscape
   the device strip and the tabs give way to the lanes, with the controls in a thin bar and
   the readout beside the lanes, never over a trace. Tapping a lane expands it alone, in
   landscape; the cross brings it back.
@@ -146,7 +146,7 @@ One tap to a report you have looked at before it leaves the phone.
 
 ## Tabs and what they do when hidden (`ui/shell/tab_scope.dart`)
 
-The three tabs are kept alive so each keeps its place, which means the framework does not tell a
+The four tabs are kept alive so each keeps its place, which means the framework does not tell a
 page that it is hidden. `TabScope` does. The Data page does no work while another tab is on top
 (it stops redrawing the live signal), and the Report page uses it to know when to re-read the
 decisions.

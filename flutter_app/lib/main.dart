@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'app/app_scope.dart';
 import 'app/app_services.dart';
 import 'config/app_config.dart';
-import 'ui/home/home_page.dart';
+import 'ui/shell/app_shell.dart';
 import 'ui/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -46,7 +46,7 @@ class NeoCompanionApp extends StatelessWidget {
       title: kBrandName,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: const HomePage(),
+      home: const AppShell(),
     );
   }
 }

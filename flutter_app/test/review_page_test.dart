@@ -12,6 +12,7 @@ import 'package:neo_companion/report/report_exporter.dart';
 import 'package:neo_companion/ui/orientation.dart' as orientation;
 import 'package:neo_companion/ui/review/review_page.dart';
 import 'package:neo_companion/ui/shell/app_shell.dart';
+import 'package:neo_companion/ui/shell/tab_scope.dart';
 import 'package:neo_companion/ui/theme/app_theme.dart';
 import 'package:neo_companion/ui/trace/signal_lanes.dart';
 
@@ -99,9 +100,9 @@ void main() {
   group('the shell', () {
     testWidgets('the Review tab is the real page, and the Report tab is the real Report page', (t) async {
       final s = await services(t, mini);
-      await open(t, s, home: const AppShell(initialTab: 1));
+      await open(t, s, home: const AppShell(initialTab: ShellTab.history));
       expect(find.byType(ReviewPage), findsOneWidget);
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Report')));
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Reports')));
       await settle(t);
       expect(find.byKey(const ValueKey('create-report')), findsOneWidget);
     });
@@ -112,7 +113,7 @@ void main() {
       orientation.setPreferredOrientations = (o) async => calls.add(o);
       addTearDown(() => orientation.setPreferredOrientations = saved);
       final s = await services(t, mini);
-      await open(t, s, home: const AppShell(initialTab: 1));
+      await open(t, s, home: const AppShell(initialTab: ShellTab.history));
       expect(calls.last, [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
       expect(find.byType(NavigationBar), findsOneWidget);
     });
