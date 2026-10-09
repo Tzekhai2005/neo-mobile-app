@@ -4,6 +4,7 @@ import '../../app/app_scope.dart';
 import '../data/data_page.dart';
 import '../orientation.dart';
 import '../pages/placeholder_page.dart';
+import '../review/review_page.dart';
 import '../widgets/status_strip.dart';
 
 /// The three pages behind the start page, with the device strip on top and the
@@ -61,7 +62,8 @@ class _AppShellState extends State<AppShell> {
     final pages = widget.pages ??
         [
           const DataPage(),
-          for (final t in AppShell.tabs.skip(1)) PlaceholderPage(title: t.label, icon: t.icon),
+          const ReviewPage(),
+          PlaceholderPage(title: AppShell.tabs[2].label, icon: AppShell.tabs[2].icon),
         ];
     final landscape = MediaQuery.orientationOf(context) == Orientation.landscape && _tab == 0;
     final body = IndexedStack(index: _tab, children: pages);

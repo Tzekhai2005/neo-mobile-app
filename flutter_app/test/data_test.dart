@@ -322,6 +322,58 @@ void main() {
       expect(file.readAsStringSync(), '{ not json');
     });
 
+    group('when the file cannot be written', () {
+      // A folder where the file should be: the final rename onto it fails.
+      Future<ReviewStore> blocked() async {
+        file.parent.createSync(recursive: true);
+        Directory(file.path).createSync();
+        final s = store('k1');
+        await s.load();
+        return s;
+      }
+
+      test('a new decision is not kept in memory, and the error is thrown', () async {
+        final s = await blocked();
+        await expectLater(s.setStatus('e1', ReviewStatus.confirmed), throwsA(anything));
+        expect(s.decisionFor('e1'), isNull, reason: 'it must not claim what it could not save');
+      });
+
+      test('a change of mind goes back to what was there', () async {
+        file.parent.createSync(recursive: true);
+        final s = store('k1');
+        await s.load();
+        await s.setStatus('e1', ReviewStatus.confirmed); // saved fine
+        file.deleteSync();
+        Directory(file.path).createSync(); // now it cannot be written
+        await expectLater(s.setStatus('e1', ReviewStatus.dismissed), throwsA(anything));
+        expect(s.decisionFor('e1')!.status, ReviewStatus.confirmed);
+      });
+
+      test('a note that could not be saved is not kept either', () async {
+        final s = await blocked();
+        await expectLater(s.setNote('e1', 'hello'), throwsA(anything));
+        expect(s.decisionFor('e1'), isNull);
+      });
+
+      test('merging shows only what is really saved', () async {
+        final s = await blocked();
+        await expectLater(s.setStatus('e1', ReviewStatus.confirmed), throwsA(anything));
+        final events = [
+          RecordedEvent(
+            id: 'e1',
+            source: EventSource.auto,
+            startSample: 0,
+            durationSamples: 1,
+            confidence: 0.5,
+            channels: const [0],
+            quality: 1,
+            window: const EventWindowRef(offset: 0, length: 0, preSec: 1, postSec: 1),
+          ),
+        ];
+        expect(s.merge(events).single.status, ReviewStatus.candidate);
+      });
+    });
+
     test('updatedAt comes from the injected clock', () async {
       final s = store('k1');
       await s.load();

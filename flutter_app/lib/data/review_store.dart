@@ -68,13 +68,26 @@ class ReviewStore {
         note: (trimmed == null || trimmed.isEmpty) ? null : trimmed);
   }
 
+  /// Changes one decision and saves. If the file cannot be written, the change is
+  /// undone in memory too and the error is thrown, so what the store holds is
+  /// never more than what is on disk.
   Future<void> _write(String eventId, {required ReviewStatus status, required String? note}) async {
+    final previous = _mine[eventId];
     if (status == ReviewStatus.candidate && note == null) {
       _mine.remove(eventId); // back to the default: nothing to remember
     } else {
       _mine[eventId] = ReviewDecision(eventId: eventId, status: status, note: note, updatedAt: _now());
     }
-    await _save();
+    try {
+      await _save();
+    } catch (_) {
+      if (previous == null) {
+        _mine.remove(eventId);
+      } else {
+        _mine[eventId] = previous;
+      }
+      rethrow;
+    }
   }
 
   /// Events with this dataset's decisions applied. Unknown ids are ignored.

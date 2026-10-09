@@ -88,6 +88,37 @@ into what is drawn a few times a second: the window (5, 10 or 15 s), the EEG sca
   `kShowExperimentalRisk` removes the whole readout, and an empty `kRiskExperimentalNote`
   hides only the small print.
 
+## The Review page (`review/` and `ui/review/`)
+
+Going through the events a recording holds. The logic is in `review/` and has no widgets, so
+it is tested on its own; `ReviewController` is the state of the page.
+
+* **Days.** One day or three, paged a day at a time (a day is 24 hours from the start of the
+  recording, as in the report). Pinch zooms down to ten minutes, dragging slides, and a Reset
+  zoom button returns. There is no double-tap: it would make every single tap wait to see
+  whether a second one follows.
+* **The timeline.** One mark per event at its real time, at least 4 px wide so a ten second
+  event can be seen and tapped, and as tall as its score band (High tallest). Marks that would
+  touch at the current zoom become one with a count; tapping it lists them. Patient button
+  presses are a row of diamonds above. Hollow amber is unreviewed, green confirmed, grey
+  dismissed. Red bands are stretches where the signal quality was too poor to use. "Show
+  signal" puts the EEG envelope and the movement behind the marks; it is off by default,
+  because a large swing in the signal is not the same as an event (blinks, chewing and a loose
+  electrode make them too).
+* **The list.** Patient markers are pinned in their own group, then the candidates ranked by
+  score (ties in time order). A score is shown only as a band, High from 0.8, Medium from 0.4.
+  The list follows the days on show; the "reviewed" progress counts every event.
+* **An event.** A half-screen sheet that leaves the timeline above it, with the selected mark
+  outlined: where it is in the list, when it happened, the stored 40 s of EEG, accelerometer
+  and gyro on the shared signal view with the event's stretch shaded, a note, and Confirm and
+  Dismiss pinned at the foot so they are never scrolled out of reach. Previous and Next walk
+  the list. Decisions are written one at a time; if a write fails the screen says so and shows
+  what is really saved (`ReviewStore` undoes the change in memory when its file cannot be
+  written, so it never holds more than is on disk). A note is saved a moment after typing stops,
+  when the field loses focus, and when the sheet moves on, always to the event it was typed on.
+* The generator's ground-truth labels in the synthetic recording are never shown: they are not
+  detections.
+
 ## One owner: `AppServices`
 
 `AppServices` (`lib/app/app_services.dart`) is created once in `main()` and lives as long

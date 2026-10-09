@@ -38,7 +38,7 @@ jobs:
 
       - name: Run protocol tests
         working-directory: ./flutter_app
-        run: flutter test test/protocol_test.dart test/messages_test.dart test/data_test.dart test/live_signal_buffer_test.dart test/report_test.dart test/report_pdf_test.dart test/report_exporter_test.dart test/device_status_test.dart test/app_services_test.dart test/dataset_library_test.dart test/signal_loss_test.dart test/report_days_test.dart test/format_test.dart test/live_trace_test.dart test/home_page_test.dart test/trace_math_test.dart test/trace_sources_test.dart test/signal_lanes_test.dart test/activity_risk_test.dart test/data_view_controller_test.dart test/data_page_test.dart test/app_entry_test.dart
+        run: flutter test test/protocol_test.dart test/messages_test.dart test/data_test.dart test/live_signal_buffer_test.dart test/report_test.dart test/report_pdf_test.dart test/report_exporter_test.dart test/device_status_test.dart test/app_services_test.dart test/dataset_library_test.dart test/signal_loss_test.dart test/report_days_test.dart test/format_test.dart test/live_trace_test.dart test/home_page_test.dart test/trace_math_test.dart test/trace_sources_test.dart test/signal_lanes_test.dart test/activity_risk_test.dart test/data_view_controller_test.dart test/data_page_test.dart test/app_entry_test.dart test/review_models_test.dart test/timeline_model_test.dart test/review_controller_test.dart test/review_page_test.dart
 
       - name: Build Android APK
         working-directory: ./flutter_app
