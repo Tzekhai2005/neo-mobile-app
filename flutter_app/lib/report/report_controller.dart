@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -176,6 +177,9 @@ class ReportController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cover the last [n] days of the recording (all of it if it is shorter).
+  void setLastDays(int n) => setDays(dayCount - n, dayCount - 1);
+
   /// The label as typed so far. It applies to the next report at once; saving it for
   /// next time is [saveLabel], which can wait for a pause in the typing. Nothing is
   /// announced to listeners, so it is safe to call from a text field.
@@ -244,15 +248,20 @@ class ReportController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Opens the share sheet with the report's two files.
-  Future<void> share() async {
+  /// Opens the share sheet with the PDF alone.
+  Future<void> sharePdf() => _share((o) => [o.pdf]);
+
+  /// Opens the share sheet with the zip of CSV data alone.
+  Future<void> shareCsv() => _share((o) => [o.csvZip]);
+
+  Future<void> _share(List<File> Function(ExportedReport) pick) async {
     final out = _exported;
     if (out == null || _sharing) return;
     _error = null;
     _sharing = true;
     notifyListeners();
     try {
-      await _s.shareReport(out);
+      await _s.shareReport(out, files: pick(out));
     } catch (_) {
       _error = 'The share sheet could not be opened. The files are saved on the phone.';
     }

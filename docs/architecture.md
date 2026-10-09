@@ -147,11 +147,13 @@ One tap to a report you have looked at before it leaves the phone.
 * **Choosing.** Three presets: *Confirmed* (every confirmed event, or the top unreviewed
   candidates when nothing is confirmed yet, and the page says so), *All candidates* (every
   automatic event not dismissed) and *Markers* (patient presses). A tick box on every event,
-  grouped by band (High, Medium, Low) and the patient markers, each group with its own box that
-  is empty, half or full. A choice that is exactly a preset is shown as that preset; one made by
+  grouped by kind (Possible seizure, Unusual activity, Normal activity and Marked by you), each
+  group with its own box that is empty, half or full; an arrow opens a group to tick its events
+  one by one. A choice that is exactly a preset is shown as that preset; one made by
   hand is not. The fallback only ever counts as *Confirmed*, even if it happens to hold the same
   events as *All candidates*.
-* **Days.** Pick the first and last day to cover (consecutive days, see
+* **Days.** One card shows the date range; tapping it opens quick ranges (all days, the last
+  7, 3 or 1) and a first and last day to pick (consecutive days, see
   `docs/report-and-quality.md`). A choice that was a preset follows the new days; a hand-made one
   keeps its ticks but only those inside the days count.
 * **The patient label.** Remembered between sessions in `report_settings.json` and editable.
@@ -161,8 +163,9 @@ One tap to a report you have looked at before it leaves the phone.
   pages. The pictures come from the platform's own PDF renderer through the `printing` package,
   behind a `PdfPreviewer` interface so tests need no phone. Only the first 24 pages are pictured,
   and the page says so if there are more; if the renderer fails, the report is still saved and can
-  be shared. Share opens the phone's share sheet with exactly the two files that were written.
-  Nothing is shared until Share is pressed.
+  be shared. Share PDF and Export CSV each open the phone's share sheet with just that file (the PDF, or
+  the zip of CSV data). They share, not save: where the file goes is chosen in the share sheet.
+  Nothing is shared until one is pressed.
 * The Report page re-reads the decisions each time its tab comes to the front, so what was
   confirmed on the Review page is there; a choice made by hand is left alone.
 

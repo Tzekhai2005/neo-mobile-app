@@ -8,7 +8,7 @@ guessing.
 ## What one export produces
 
 `AppServices.exportReport()` writes a new folder in the app's storage and, by default,
-opens the phone's share sheet with the two files in it:
+can open the phone's share sheet with the files in it (the app's Share PDF and Export CSV buttons share one each):
 
 ```
 reports/report-20261007-093000/            (named from the time it was generated)
@@ -45,8 +45,9 @@ because the figure and the per-day table describe one continuous stretch of time
 ### Score bands
 
 Scores are shown to people as bands, from one place in the code (`lib/data/score_band.dart`):
-**High** from 0.80, **Medium** from 0.40, **Low** below. The report's "high confidence" count
-is the High band, so the app and the PDF always agree. Patient button presses have no score
+**High** from 0.80, **Medium** from 0.40, **Low** below; the app calls them Possible seizure,
+Unusual activity and Normal activity. The report's "possible seizures" count (score 0.80 or
+more) is the High band, so the app and the PDF always agree. Patient button presses have no score
 and no band.
 
 ## The PDF

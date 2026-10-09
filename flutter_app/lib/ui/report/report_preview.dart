@@ -102,23 +102,29 @@ class ReportPreview extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(c.error!, key: const ValueKey('report-error'), style: const TextStyle(color: AppColors.danger, fontSize: 13)),
               ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                key: const ValueKey('share-pdf'),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.navy, foregroundColor: AppColors.onNavy, minimumSize: const Size(0, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                onPressed: c.isSharing ? null : c.sharePdf,
+                icon: c.isSharing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                label: const Text('Share PDF', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(children: [
               Expanded(
-                child: FilledButton.icon(
-                  key: const ValueKey('share'),
-                  style: FilledButton.styleFrom(backgroundColor: AppColors.navy, foregroundColor: AppColors.onNavy, minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                  onPressed: c.isSharing ? null : c.share,
-                  icon: c.isSharing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.ios_share, size: 18),
-                  label: const Text('Share', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                child: OutlinedButton.icon(
+                  key: const ValueKey('share-csv'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                  onPressed: c.isSharing ? null : c.shareCsv,
+                  icon: const Icon(Icons.table_chart_outlined, size: 18),
+                  label: const Text('Export CSV', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(width: 10),
-              OutlinedButton(
-                key: const ValueKey('create-another'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                onPressed: c.createAnother,
-                child: const Text('Create another'),
-              ),
+              TextButton(key: const ValueKey('create-another'), onPressed: c.createAnother, child: const Text('Create another')),
             ]),
           ]),
         ),

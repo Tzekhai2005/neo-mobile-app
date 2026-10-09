@@ -396,12 +396,14 @@ void main() {
   });
 
   group('sharing', () {
-    test('hands over exactly the two files that were written', () async {
+    test('the PDF and the CSV data are shared one at a time, each as the file that was written', () async {
       final c = await loaded(mini);
       await c.create();
-      await c.share();
+      await c.sharePdf();
+      await c.shareCsv();
       expect(sharer.calls, [
-        [c.exported!.pdf.path, c.exported!.csvZip.path]
+        [c.exported!.pdf.path],
+        [c.exported!.csvZip.path],
       ]);
       expect(c.isSharing, isFalse);
     });
@@ -410,15 +412,28 @@ void main() {
       sharer.failWith = StateError('no sheet');
       final c = await loaded(mini);
       await c.create();
-      await c.share();
+      await c.sharePdf();
       expect(c.error, contains('share sheet'));
       expect(c.stage, ReportStage.ready);
     });
 
     test('with no report there is nothing to share', () async {
       final c = await loaded(mini);
-      await c.share();
+      await c.sharePdf();
+      await c.shareCsv();
       expect(sharer.calls, isEmpty);
+    });
+
+    test('the last days of a long recording can be chosen in one step', () async {
+      final c = await loaded('assets/demo_recording');
+      expect(c.dayCount, 28);
+      c.setLastDays(7);
+      expect((c.firstDay, c.lastDay), (21, 27));
+      c.setLastDays(1);
+      expect((c.firstDay, c.lastDay), (27, 27));
+      c.setLastDays(99);
+      expect((c.firstDay, c.lastDay), (0, 27));
+      expect(c.days, isNull, reason: 'that is all of it');
     });
   });
 

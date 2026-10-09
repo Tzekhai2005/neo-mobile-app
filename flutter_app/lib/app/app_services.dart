@@ -282,8 +282,11 @@ class AppServices {
   }
 
   /// Opens the share sheet with the files of a report that was already written.
-  Future<void> shareReport(ExportedReport report, {String? subject}) =>
-      _sharer.share([report.pdf, report.csvZip], subject: subject ?? 'EEG review report');
+  ///
+  /// With [files] only those are shared (for example just the PDF); otherwise both
+  /// the PDF and the CSV zip.
+  Future<void> shareReport(ExportedReport report, {List<File>? files, String? subject}) =>
+      _sharer.share(files ?? [report.pdf, report.csvZip], subject: subject ?? 'EEG review report');
 
   /// One click: build the report, write the PDF and CSV zip, and (by default)
   /// open the share sheet.

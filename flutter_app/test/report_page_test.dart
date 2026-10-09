@@ -113,10 +113,14 @@ void main() {
       for (final k in ['preset-confirmed', 'preset-allCandidates', 'preset-markers', 'clear', 'create-report', 'label-field']) {
         expect(key(k), findsOneWidget, reason: k);
       }
-      expect(text('Patient markers'), findsOneWidget);
-      expect(text('High'), findsWidgets);
-      expect(text('Medium'), findsWidgets);
-      expect(text('Low'), findsWidgets);
+      expect(text('Reports'), findsOneWidget);
+      expect(key('report-info'), findsOneWidget);
+      expect(find.text('Create a report'), findsOneWidget);
+      expect(text('Marked by you'), findsOneWidget);
+      expect(text('Possible seizure'), findsWidgets);
+      expect(text('Unusual activity'), findsWidgets);
+      expect(text('Normal activity'), findsWidgets);
+      expect(text('High'), findsNothing);
       expect(text('4 selected'), findsOneWidget, reason: 'nothing confirmed, so the top candidates');
     });
 
@@ -176,7 +180,11 @@ void main() {
       await open(t, s);
       await t.tap(key('clear'));
       await t.pump();
-      final id = s.recording.events().first.id;
+      final first = s.reviewEvents().first;
+      final id = first.event.id;
+      final group = first.isMarker ? 'markers' : {'high': 'high', 'medium': 'medium', 'low': 'low'}[first.band!.name]!;
+      await t.tap(key('expand-$group'));
+      await t.pump();
       await t.tap(key('report-row-$id'));
       await t.pump();
       expect(text('1 selected'), findsOneWidget);
@@ -205,6 +213,8 @@ void main() {
       await t.tap(key('clear'));
       await t.pump();
       final low = s.reviewEvents().where((e) => e.band?.name == 'low').first;
+      await t.tap(key('expand-low'));
+      await t.pump();
       await t.tap(key('report-row-${low.event.id}'));
       await t.pump();
       expect(t.widget<Checkbox>(key('group-low')).value, isNull, reason: 'a half-ticked box');
@@ -221,24 +231,54 @@ void main() {
     testWidgets('a recording of one day has no day picker', (t) async {
       final s = await services(t, mini);
       await open(t, s);
-      expect(key('day-from'), findsNothing);
+      expect(key('date-range'), findsNothing);
     });
 
     testWidgets('a three-day recording has one, and a narrower choice changes what is listed', (t) async {
       final s = await services(t, demo);
       await open(t, s);
-      expect(key('day-from'), findsOneWidget);
-      expect(key('day-to'), findsOneWidget);
+      expect(key('date-range'), findsOneWidget);
       await t.tap(key('preset-allCandidates'));
       await t.pump();
       final all = (t.widget<Text>(key('selected-count')).data)!;
+      await t.tap(key('date-range'));
+      await t.pumpAndSettle();
+      expect(key('day-from'), findsOneWidget);
+      expect(key('day-to'), findsOneWidget);
       await t.tap(key('day-to'));
       await t.pumpAndSettle();
       await t.tap(find.textContaining('Day 1 ·').last);
       await t.pumpAndSettle();
+      await t.tap(find.text('Done'));
+      await t.pumpAndSettle();
       final one = (t.widget<Text>(key('selected-count')).data)!;
       expect(one, isNot(all));
       expect(int.parse(one.split(' ').first), lessThan(int.parse(all.split(' ').first)));
+    });
+  });
+
+  group('days', () {
+    testWidgets('the date range is one card, and its sheet has the quick ranges', (t) async {
+      final s = await services(t, 'assets/demo_recording');
+      await open(t, s);
+      expect(find.text('Mon 5 Oct to Sun 1 Nov'), findsOneWidget);
+      expect(find.text('28 days'), findsOneWidget);
+      await t.tap(key('date-range'));
+      await t.pumpAndSettle();
+      await t.tap(key('range-last7'));
+      await t.pump();
+      expect(find.text('Mon 26 Oct to Sun 1 Nov'), findsWidgets);
+      await t.tap(key('range-all'));
+      await t.pump();
+      expect(find.text('Mon 5 Oct to Sun 1 Nov'), findsWidgets);
+    });
+
+    testWidgets('the info button says what a report holds', (t) async {
+      final s = await services(t, mini);
+      await open(t, s);
+      await t.tap(key('report-info'));
+      await t.pumpAndSettle();
+      expect(find.textContaining('not a medical device'), findsOneWidget);
     });
   });
 
@@ -298,9 +338,13 @@ void main() {
     testWidgets('a three-day recording narrowed to one day says which', (t) async {
       final s = await services(t, demo);
       await open(t, s);
+      await t.tap(key('date-range'));
+      await t.pumpAndSettle();
       await t.tap(key('day-to'));
       await t.pumpAndSettle();
       await t.tap(find.textContaining('Day 1 ·').last);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Done'));
       await t.pumpAndSettle();
       await create(t);
       expect(find.textContaining('Day 1'), findsWidgets);
@@ -334,7 +378,8 @@ void main() {
       await open(t, s);
       await create(t);
       expect(key('preview-unavailable'), findsOneWidget);
-      expect(key('share'), findsOneWidget);
+      expect(key('share-pdf'), findsOneWidget);
+      expect(key('share-csv'), findsOneWidget);
     });
 
     testWidgets('a failure to write is said, and the choice is kept', (t) async {
@@ -352,16 +397,19 @@ void main() {
   });
 
   group('sharing', () {
-    testWidgets('Share hands over the two files', (t) async {
+    testWidgets('Share PDF hands over the PDF, and Export CSV the zip, each alone', (t) async {
       final s = await services(t, mini);
       await open(t, s);
       await create(t);
-      await t.tap(key('share'));
+      await t.tap(key('share-pdf'));
       await settle(t, 60);
-      expect(sharer.calls.length, 1);
-      expect(sharer.calls.single.length, 2);
-      expect(sharer.calls.single.first, endsWith('.pdf'));
-      expect(sharer.calls.single.last, endsWith('-data.zip'));
+      await t.tap(key('share-csv'));
+      await settle(t, 60);
+      expect(sharer.calls.length, 2);
+      expect(sharer.calls.first.length, 1);
+      expect(sharer.calls.first.single, endsWith('.pdf'));
+      expect(sharer.calls.last.length, 1);
+      expect(sharer.calls.last.single, endsWith('-data.zip'));
     });
 
     testWidgets('a share sheet that fails is said, and the report stays', (t) async {
@@ -369,7 +417,7 @@ void main() {
       final s = await services(t, mini);
       await open(t, s);
       await create(t);
-      await t.tap(key('share'));
+      await t.tap(key('share-pdf'));
       await settle(t, 60);
       expect(find.textContaining('share sheet'), findsOneWidget);
       expect(key('report-ready'), findsOneWidget);

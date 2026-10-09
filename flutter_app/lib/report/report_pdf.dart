@@ -299,7 +299,7 @@ class ReportPdf {
         ]),
         pw.SizedBox(height: 6),
         pw.Row(children: [
-          stat('${s.highConfidence}', 'high confidence (0.80 or more)'),
+          stat('${s.highConfidence}', 'possible seizures (score 0.80 or more)'),
           stat('${s.unreviewed}', 'not yet reviewed'),
           stat('${s.dismissed}', 'dismissed'),
           if (s.unsure > 0) stat('${s.unsure}', 'marked not sure'),
@@ -427,7 +427,7 @@ class ReportPdf {
       pw.SizedBox(height: 4),
       pw.Wrap(spacing: 12, runSpacing: 3, children: [
         swatch(_bar, 'candidate (bar height = confidence)', line: true),
-        swatch(_high, 'high confidence, 0.80 or more', line: true),
+        swatch(_high, 'possible seizure, score 0.80 or more', line: true),
         swatch(_ink, 'included in this report', dot: true),
         swatch(_marker, 'patient button press', diamond: true),
         swatch(_night, 'night, 23:00 to 07:00'),
