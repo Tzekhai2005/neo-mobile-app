@@ -14,7 +14,7 @@ the app at it (see kDatasetLocation in lib/config/app_config.dart).
 
 Standard library only. Deterministic for a given --seed.
 
-    python3 tools/make_demo_dataset.py                      # 72 h -> flutter_app/assets/demo_recording
+    python3 tools/make_demo_dataset.py                      # 28 days -> flutter_app/assets/demo_recording
     python3 tools/make_demo_dataset.py --hours 1 --events 4 --out /tmp/mini
     python3 tools/make_demo_dataset.py --verify-only --out flutter_app/assets/demo_recording
     python3 tools/make_demo_dataset.py --out /tmp/rec --zip /tmp/my_recording.zip    # a zip for the app's picker
@@ -447,8 +447,8 @@ def main():
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=os.path.join(here, "..", "flutter_app", "assets", "demo_recording"))
-    ap.add_argument("--hours", type=float, default=72.0)
-    ap.add_argument("--events", type=int, default=110, help="number of automatic candidate events")
+    ap.add_argument("--hours", type=float, default=672.0, help="length in hours (672 = 28 days, four whole weeks)")
+    ap.add_argument("--events", type=int, default=336, help="number of automatic candidate events")
     ap.add_argument("--channels", type=int, default=2, choices=[2, 3, 4])
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--start-utc", default="2026-10-05T00:00:00Z", help="recording start (UTC)")

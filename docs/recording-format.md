@@ -6,7 +6,10 @@ one as a single **zip file**; this page describes that zip and the three files i
 
 The demo recording bundled with the app uses exactly this format
 (`flutter_app/assets/demo_recording/`), and it is **synthetic**: made up by
-`tools/make_demo_dataset.py`, not a real person. Its manifest says so.
+`tools/make_demo_dataset.py`, not a real person. Its manifest says so. It spans 28 days (four
+whole weeks, 420 events: about 47 high-score, 100 medium and 190 low, plus the patient's own
+button presses), so the History page has a week and a month to show. The 3-day recording the
+tests use is kept in `flutter_app/test/fixtures/demo_3day/`.
 
 ## The zip
 

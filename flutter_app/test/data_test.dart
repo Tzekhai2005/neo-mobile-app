@@ -10,11 +10,12 @@ import 'package:neo_companion/data/dataset_readers.dart';
 import 'package:neo_companion/data/recording_source.dart';
 import 'package:neo_companion/data/review_event.dart';
 import 'package:neo_companion/data/review_store.dart';
+import 'package:neo_companion/data/score_band.dart';
 import 'package:neo_companion/data/static_recording_source.dart';
 
 const mini = 'test/fixtures/mini_recording';
 const mini4 = 'test/fixtures/mini_recording_4ch';
-const bundled = 'assets/demo_recording';
+const bundled = 'test/fixtures/demo_3day'; // the 3-day fixture; the app's own demo is tested below
 
 Future<StaticRecordingSource> open(String dir) async {
   final s = StaticRecordingSource(DirectoryDatasetReader(dir));
@@ -57,7 +58,7 @@ void main() {
       expect(w.eeg.every((c) => c.length == 250 * 40), isTrue);
     });
 
-    test('the bundled demo recording loads and spans 3 days', () async {
+    test('the 3-day demo fixture loads and spans 3 days', () async {
       final s = await open(bundled);
       expect(s.info.durationSec, 3 * 24 * 3600);
       expect(s.events().length, 119);
@@ -75,8 +76,18 @@ void main() {
       TestWidgetsFlutterBinding.ensureInitialized();
       final s = StaticRecordingSource(readerFor(kDatasetLocation));
       await s.load();
-      expect(s.events().length, 119);
-      final ev = s.events().firstWhere((e) => e.truth == 'seizure-like');
+      expect(s.info.durationSec, 28 * 86400, reason: 'four whole weeks');
+      expect(s.info.synthetic, isTrue);
+      final events = s.events();
+      expect(events.length, 420);
+      expect({for (final e in events) e.id}.length, events.length, reason: 'ids are unique');
+      final auto = events.where((e) => e.source == EventSource.auto);
+      int inBand(bool Function(double) f) => auto.where((e) => f(e.confidence!)).length;
+      expect(inBand((c) => c >= kHighConfidence), greaterThan(30), reason: 'Possible seizure');
+      expect(inBand((c) => c >= kMediumConfidence && c < kHighConfidence), greaterThan(60), reason: 'Unusual activity');
+      expect(inBand((c) => c < kMediumConfidence), greaterThan(100), reason: 'Normal activity');
+      expect(events.where((e) => e.source == EventSource.patientButton).length, greaterThan(40));
+      final ev = events.firstWhere((e) => e.truth == 'seizure-like');
       final w = await s.eventWindow(ev.id);
       expect(w.eeg.length, 2);
       expect(w.eeg[0].length, 250 * 40);

@@ -10,7 +10,7 @@ import 'package:neo_companion/review/review_controller.dart';
 import 'package:neo_companion/review/review_models.dart';
 
 const mini = 'test/fixtures/mini_recording'; // one hour, 5 events (one patient press)
-const demo = 'assets/demo_recording'; // three days, 119 events
+const demo = 'test/fixtures/demo_3day'; // three days, 119 events
 
 class _NoShare implements FileSharer {
   @override

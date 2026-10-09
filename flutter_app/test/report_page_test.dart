@@ -21,7 +21,7 @@ import 'helpers/settle.dart';
 import 'helpers/test_fonts.dart';
 
 const mini = 'test/fixtures/mini_recording'; // one hour: 4 automatic events (1 High, 1 Medium, 2 Low) and 1 patient press
-const demo = 'assets/demo_recording'; // three days, 119 events
+const demo = 'test/fixtures/demo_3day'; // three days, 119 events
 
 final _png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
 

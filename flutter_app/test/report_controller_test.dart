@@ -15,7 +15,7 @@ import 'package:neo_companion/report/report_selection.dart';
 import 'package:neo_companion/review/review_models.dart';
 
 const mini = 'test/fixtures/mini_recording'; // one hour: 4 automatic events and 1 patient press
-const demo = 'assets/demo_recording'; // three days, 119 events
+const demo = 'test/fixtures/demo_3day'; // three days, 119 events
 
 class FakeSharer implements FileSharer {
   final calls = <List<String>>[];

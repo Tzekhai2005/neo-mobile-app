@@ -9,7 +9,7 @@ import 'package:neo_companion/report/report_models.dart';
 import 'package:neo_companion/report/report_pdf.dart';
 import 'package:neo_companion/report/report_selection.dart';
 
-const bundled = 'assets/demo_recording'; // 3 days
+const bundled = 'test/fixtures/demo_3day'; // 3 days
 final now = DateTime.utc(2026, 10, 8, 9, 30);
 
 String wordsOf(String rawPdf) {

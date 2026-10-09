@@ -164,7 +164,7 @@ void main() {
     });
 
     test('can cover only some days, and its default selection stays inside them', () async {
-      final s = services(dataset: 'assets/demo_recording'); // 3 days
+      final s = services(dataset: 'test/fixtures/demo_3day'); // 3 days
       final r = await s.buildReport(days: const DayRange(1, 1));
       expect(r.header.isPartial, isTrue);
       expect(r.selectionIsFallback, isTrue, reason: 'nothing confirmed yet');
@@ -292,7 +292,7 @@ void main() {
       await s.loadReview();
       expect(s.currentDataset, isNull);
       expect(s.recording.info.eegChannels, 2);
-      expect(s.recording.events().length, 119);
+      expect(s.recording.events().length, 420);
       expect(s.datasetNotice, isNull);
       expect(await s.listDatasets(), isEmpty);
     });
@@ -330,7 +330,7 @@ void main() {
       expect(await s.pickAndImportDataset(), isNull);
       expect(picker.calls, 1);
       expect(s.currentDataset, isNull);
-      expect(s.recording.events().length, 119);
+      expect(s.recording.events().length, 420);
     });
 
     test('a zip that is not a recording is refused with an explanation, and the current recording stays', () async {
@@ -340,7 +340,7 @@ void main() {
       await expectLater(s.pickAndImportDataset(),
           throwsA(isA<DatasetImportException>().having((e) => e.message, 'message', contains('manifest.json'))));
       expect(s.currentDataset, isNull);
-      expect(s.recording.events().length, 119);
+      expect(s.recording.events().length, 420);
       expect(picker.result!.existsSync(), isFalse, reason: 'the temporary copy is cleaned up on failure too');
       expect(await s.listDatasets(), isEmpty);
     });
@@ -371,7 +371,7 @@ void main() {
       final second = app();
       await second.loadReview();
       expect(second.currentDataset, isNull);
-      expect(second.recording.events().length, 119, reason: 'the demo is shown instead of nothing');
+      expect(second.recording.events().length, 420, reason: 'the demo is shown instead of nothing');
       expect(second.datasetNotice, allOf(contains('"r"'), contains('demo recording is shown instead')));
       expect(await second.library!.selected(), isNull, reason: 'the broken choice is forgotten');
     });
@@ -383,7 +383,7 @@ void main() {
       await s.pickAndImportDataset();
       await s.removeDataset('r');
       expect(s.currentDataset, isNull);
-      expect(s.recording.events().length, 119);
+      expect(s.recording.events().length, 420);
       expect(await s.listDatasets(), isEmpty);
     });
 

@@ -14,7 +14,7 @@ import 'package:neo_companion/report/report_selection.dart';
 
 const mini = 'test/fixtures/mini_recording';
 const mini4 = 'test/fixtures/mini_recording_4ch';
-const bundled = 'assets/demo_recording';
+const bundled = 'test/fixtures/demo_3day';
 final now = DateTime.utc(2026, 10, 7, 9, 30);
 
 Future<StaticRecordingSource> open(String dir) async {
