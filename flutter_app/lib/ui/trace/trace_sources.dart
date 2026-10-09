@@ -28,9 +28,11 @@ List<TraceLane> _lanes({
   required int imuRateHz,
   required double eegScaleUv,
   required bool showMotion,
+  bool showEeg = true,
 }) =>
     [
-      for (var c = 0; c < eeg.length; c++)
+      if (showEeg)
+        for (var c = 0; c < eeg.length; c++)
         TraceLane(
           label: 'Ch${c + 1}',
           series: [eeg[c]],
@@ -85,6 +87,7 @@ TraceData liveTraceData(
   LiveSnapshot s, {
   double eegScaleUv = kDefaultEegScaleUv,
   bool showMotion = true,
+  bool showEeg = true,
   List<TraceMarker> markers = const [],
   double backSec = 0,
   String nowLabel = 'now',
@@ -104,6 +107,7 @@ TraceData liveTraceData(
       imuRateHz: s.imuRateHz,
       eegScaleUv: eegScaleUv,
       showMotion: showMotion,
+      showEeg: showEeg,
     ),
     durationSec: duration,
     markers: markers,

@@ -10,7 +10,10 @@ import '../theme/app_theme.dart';
 import '../trace/trace_models.dart';
 import '../trace/trace_sources.dart';
 
-/// What the Data page shows and how: the time window, the µV scale, whether the
+/// Which lanes the live view draws: everything, only the EEG, or only the motion.
+enum LaneSet { all, eeg, movement }
+
+/// What the Live page shows and how: the time window, the µV scale, whether the
 /// motion lanes are open, a paused view that can be scrolled back through the
 /// last 30 seconds, and which lane (if any) is expanded. It turns the live buffer
 /// into a [TraceData] each time [tick] is called; the page calls that a few times
@@ -26,7 +29,7 @@ class DataViewController extends ChangeNotifier {
 
   int _windowSec = 10;
   double _eegScaleUv = kDefaultEegScaleUv;
-  bool _showMotion = true;
+  LaneSet _laneSet = LaneSet.all;
   int? _expandedLane;
 
   /// While paused: the newest sample at the moment of pausing, the stream it was
@@ -39,7 +42,8 @@ class DataViewController extends ChangeNotifier {
 
   int get windowSec => _windowSec;
   double get eegScaleUv => _eegScaleUv;
-  bool get showMotion => _showMotion;
+  LaneSet get laneSet => _laneSet;
+  bool get showMotion => _laneSet != LaneSet.eeg;
   bool get paused => _pausedEnd != null;
   int? get expandedLane => _expandedLane;
   double get backSec => _backSec;
@@ -104,6 +108,13 @@ class DataViewController extends ChangeNotifier {
     _rebuild();
   }
 
+  /// Set the scale to one of [kEegScalesUv]; anything else is ignored.
+  void setScale(double uv) {
+    if (!kEegScalesUv.contains(uv) || uv == _eegScaleUv) return;
+    _eegScaleUv = uv;
+    _rebuild();
+  }
+
   /// One step bigger (+1) or smaller (-1), stopping at the ends.
   void stepScale(int direction) {
     final i = kEegScalesUv.indexOf(_eegScaleUv);
@@ -113,10 +124,14 @@ class DataViewController extends ChangeNotifier {
     _rebuild();
   }
 
-  void toggleMotion() {
-    _showMotion = !_showMotion;
+  void setLaneSet(LaneSet set) {
+    if (set == _laneSet) return;
+    _laneSet = set;
     _rebuild();
   }
+
+  /// The landscape switch: the motion lanes on or off beside the EEG.
+  void toggleMotion() => setLaneSet(_laneSet == LaneSet.eeg ? LaneSet.all : LaneSet.eeg);
 
   void togglePause() => paused ? resume() : pause();
 
@@ -169,7 +184,8 @@ class DataViewController extends ChangeNotifier {
     _data = liveTraceData(
       snap,
       eegScaleUv: _eegScaleUv,
-      showMotion: _showMotion,
+      showMotion: _laneSet != LaneSet.eeg,
+      showEeg: _laneSet != LaneSet.movement,
       markers: markers,
       backSec: _backSec,
       nowLabel: paused ? 'paused' : 'now',
@@ -192,7 +208,7 @@ class DataViewController extends ChangeNotifier {
     for (final m in seizureMarkers.markers) {
       if (m.streamId != buffer.streamId) continue; // made in an earlier stream
       final t = at(m.sampleIdx);
-      if (t != null) out.add(TraceMarker(t, label: 'Seizure now', color: AppColors.danger));
+      if (t != null) out.add(TraceMarker(t, label: 'Marked', color: AppColors.danger));
     }
     return out;
   }

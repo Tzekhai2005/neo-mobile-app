@@ -55,11 +55,16 @@ view look and behave the same. It holds no state: it draws a `TraceData` it is g
 * EEG scales are 25, 50, 100, 200, 500 and 1000 µV from the middle of a lane to its edge;
   the motion scales are fixed (accelerometer ±2 g, gyro ±250 °/s).
 
-## The Data page (`ui/data/`)
+## The Live page (`ui/data/`)
 
 The live view, built on the signal view above. `DataViewController` turns the live buffer
 into what is drawn a few times a second: the window (5, 10 or 15 s), the EEG scale (25 to
-1000 µV), whether the motion lanes are open, and which lane is expanded.
+1000 µV), which lanes are drawn (all, EEG only or movement only) and which lane is expanded.
+
+* **Layout.** Portrait: a title and gear, the All / EEG / Movement tabs, a "Live" line with the
+  time since the device connected, the graph, the experimental readout, three tiles (Wi-Fi,
+  battery, connection, each showing only what the device reported) and "Mark an event".
+  The window, scale, freeze switch and device details live on the Advanced settings page.
 
 * **Pause and look back.** Pausing freezes the view at that moment; dragging sideways then
   moves back through the 30 s the buffer holds, and the time labels say how far back. If
@@ -70,7 +75,7 @@ into what is drawn a few times a second: the window (5, 10 or 15 s), the EEG sca
   the device strip and the tabs give way to the lanes, with the controls in a thin bar and
   the readout beside the lanes, never over a trace. Tapping a lane expands it alone, in
   landscape; the cross brings it back.
-* **Markers.** A device button press is drawn as "button". "Seizure now" marks the newest
+* **Markers.** A device button press is drawn as "button". "Mark an event" marks the newest (drawn as "Marked")
   sample, together with the stream it belongs to (an index starts over on every restart, so
   a marker from an earlier stream is never drawn at a place that now means something else).
   These markers live in memory while the app is open; they are not saved and do not reach

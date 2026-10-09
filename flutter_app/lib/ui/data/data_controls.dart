@@ -24,7 +24,7 @@ class DataControls extends StatelessWidget {
           runSpacing: 6,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _Segments(
+            PillSegments(
               labels: [for (final s in DataViewController.windowChoices) '$s s'],
               selected: DataViewController.windowChoices.indexOf(controller.windowSec),
               keyPrefix: 'window',
@@ -109,13 +109,13 @@ class PillButton extends StatelessWidget {
   }
 }
 
-class _Segments extends StatelessWidget {
+class PillSegments extends StatelessWidget {
   final List<String> labels;
   final int selected;
   final String keyPrefix;
   final ValueChanged<int> onSelect;
 
-  const _Segments({required this.labels, required this.selected, required this.keyPrefix, required this.onSelect});
+  const PillSegments({required this.labels, required this.selected, required this.keyPrefix, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -151,12 +151,13 @@ class _Segments extends StatelessWidget {
   }
 }
 
-/// The "Seizure now" button.
-class SeizureNowButton extends StatelessWidget {
+/// The "Mark an event" button: the wearer or a carer taps it when a seizure is felt
+/// or seen. The big one carries a line of help; the compact one fits a thin bar.
+class MarkEventButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool compact;
 
-  const SeizureNowButton({super.key, required this.onPressed, this.compact = false});
+  const MarkEventButton({super.key, required this.onPressed, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -165,14 +166,24 @@ class SeizureNowButton extends StatelessWidget {
       foregroundColor: AppColors.danger,
       side: const BorderSide(color: AppColors.danger),
       padding: EdgeInsets.symmetric(horizontal: 18, vertical: compact ? 8 : 14),
-      minimumSize: Size(0, compact ? 34 : 48),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(compact ? 18 : 14)),
+      minimumSize: Size(compact ? 0 : double.infinity, compact ? 34 : 64),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(compact ? 18 : 16)),
     );
     return FilledButton(
       key: const ValueKey('seizure-now'),
       style: style,
       onPressed: onPressed,
-      child: Text('Seizure now', style: TextStyle(fontSize: compact ? 13 : 15, fontWeight: FontWeight.w600)),
+      child: compact
+          ? const Text('Mark an event', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))
+          : const Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.flag_outlined, size: 20),
+                SizedBox(width: 8),
+                Text('Mark an event', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              ]),
+              SizedBox(height: 2),
+              Text('Tap if you feel or see a seizure', style: TextStyle(fontSize: 12)),
+            ]),
     );
   }
 }

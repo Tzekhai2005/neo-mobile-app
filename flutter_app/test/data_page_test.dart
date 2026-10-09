@@ -88,29 +88,46 @@ void main() {
     await t.pump(const Duration(milliseconds: 200));
   }
 
-  SignalLanes lanes(WidgetTester t) => t.widget<SignalLanes>(find.byType(SignalLanes));
+  SignalLanes lanes(WidgetTester t) => t.widget<SignalLanes>(find.byType(SignalLanes, skipOffstage: false));
+
+  Future<void> openSettings(WidgetTester t) async {
+    await t.tap(find.byKey(const ValueKey('settings')));
+    await t.pump(); // the route is built
+    await t.pump(const Duration(milliseconds: 500)); // and slides in
+  }
+
+  Future<void> tapMark(WidgetTester t) async {
+    final button = find.byKey(const ValueKey('seizure-now'));
+    if (t.getBottomLeft(button).dy > 780) {
+      await t.drag(find.byType(SingleChildScrollView).first, const Offset(0, -300));
+      await t.pump();
+    }
+    await t.tap(button);
+  }
 
   group('before there is anything to draw', () {
     testWidgets('says what it is waiting for', (t) async {
       final s = services();
       await show(t, s);
-      expect(find.text('Waiting for the device'), findsOneWidget);
+      Finder waiting(String text) => find.descendant(of: find.byKey(const ValueKey('waiting')), matching: find.text(text));
+      expect(waiting('Waiting for the device'), findsOneWidget);
       expect(find.byType(SignalLanes), findsNothing);
       s.status.value = const DeviceStatus(link: LinkState.connecting);
       await t.pump();
-      expect(find.text('Connecting'), findsOneWidget);
+      expect(waiting('Connecting'), findsOneWidget);
       s.status.value = connected;
       await t.pump();
-      expect(find.text('Waiting for the first data'), findsOneWidget);
+      expect(waiting('Waiting for the first data'), findsOneWidget);
       s.status.value = const DeviceStatus(link: LinkState.stalled);
       await t.pump();
-      expect(find.text('No data'), findsOneWidget);
+      expect(waiting('No data'), findsOneWidget);
     });
 
-    testWidgets('the controls and the button are still there', (t) async {
+    testWidgets('the settings, the status tiles and the button are still there', (t) async {
       final s = services();
       await show(t, s);
-      expect(find.byKey(const ValueKey('scale')), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings')), findsOneWidget);
+      expect(find.byKey(const ValueKey('tile-battery')), findsOneWidget);
       expect(find.byKey(const ValueKey('seizure-now')), findsOneWidget);
     });
   });
@@ -139,6 +156,7 @@ void main() {
       s.status.value = connected;
       stream(s);
       await show(t, s);
+      await openSettings(t);
       for (final w in [5, 15, 10]) {
         await t.tap(find.byKey(ValueKey('window-$w')));
         await t.pump();
@@ -146,35 +164,90 @@ void main() {
       }
     });
 
-    testWidgets('tapping the scale steps it round: 100, 200, 500, 1000, then 25', (t) async {
+    testWidgets('the scale is chosen in the settings, all the way to 1000 µV', (t) async {
       final s = services();
       s.status.value = connected;
       stream(s);
       await show(t, s);
-      final seen = <String>[];
-      String label() => (t.widget<PillButton>(find.byKey(const ValueKey('scale')))).label;
-      seen.add(label());
-      for (var i = 0; i < 4; i++) {
-        await t.tap(find.byKey(const ValueKey('scale')));
+      expect(lanes(t).data.lanes.first.scale, 100);
+      await openSettings(t);
+      for (final v in [25, 50, 200, 500, 1000, 100]) {
+        await t.tap(find.byKey(ValueKey('scale-$v')));
         await t.pump();
-        seen.add(label());
+        expect(lanes(t).data.lanes.first.scale, v.toDouble(), reason: '$v');
+        expect(t.widget<PillButton>(find.byKey(ValueKey('scale-$v'))).selected, isTrue);
       }
-      expect(seen, ['±100 µV', '±200 µV', '±500 µV', '±1000 µV', '±25 µV']);
-      expect(lanes(t).data.lanes.first.scale, 25);
     });
 
-    testWidgets('the motion lanes are open, and can be closed and opened', (t) async {
+    testWidgets('shows everything, and the tabs narrow it to the EEG or the movement', (t) async {
       final s = services();
       s.status.value = connected;
       stream(s);
       await show(t, s);
-      expect(lanes(t).data.lanes.length, 4);
-      await t.tap(find.byKey(const ValueKey('motion')));
+      List<String> labels() => lanes(t).data.lanes.map((l) => l.label).toList();
+      expect(labels(), ['Ch1', 'Ch2', 'Accel', 'Gyro'], reason: 'everything at once, as chosen');
+      await t.tap(find.byKey(const ValueKey('lanes-eeg')));
       await t.pump();
-      expect(lanes(t).data.lanes.length, 2);
-      await t.tap(find.byKey(const ValueKey('motion')));
+      expect(labels(), ['Ch1', 'Ch2']);
+      await t.tap(find.byKey(const ValueKey('lanes-movement')));
       await t.pump();
-      expect(lanes(t).data.lanes.length, 4);
+      expect(labels(), ['Accel', 'Gyro']);
+      await t.tap(find.byKey(const ValueKey('lanes-all')));
+      await t.pump();
+      expect(labels(), ['Ch1', 'Ch2', 'Accel', 'Gyro']);
+    });
+
+    testWidgets('the settings page also has the freeze switch and the device details', (t) async {
+      final s = services();
+      s.status.value = connected;
+      stream(s);
+      await show(t, s);
+      await openSettings(t);
+      expect(find.text('Advanced settings'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('pause-switch')));
+      await t.pump();
+      expect(find.byKey(const ValueKey('paused-badge'), skipOffstage: false), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('device-details')));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 500));
+      expect(find.text('Serial'), findsOneWidget);
+    });
+
+    testWidgets('the screen has a Live line with the time, and tiles with what the device reports', (t) async {
+      final s = services();
+      s.status.value = DeviceStatus(
+        link: LinkState.connected,
+        name: 'Neo-4F2A',
+        batteryPct: 78,
+        rssiDbm: -52,
+        leadOff: false,
+        connectedAt: s.now().subtract(const Duration(minutes: 12, seconds: 36)),
+      );
+      stream(s);
+      await show(t, s);
+      expect(find.byKey(const ValueKey('live-label')), findsOneWidget);
+      expect(find.text('Live'), findsOneWidget);
+      expect(find.text('00:12:36'), findsOneWidget);
+      Finder tile(String k, String text) =>
+          find.descendant(of: find.byKey(ValueKey(k)), matching: find.text(text));
+      expect(tile('tile-wifi', 'Good'), findsOneWidget);
+      expect(tile('tile-battery', '78 %'), findsOneWidget);
+      expect(tile('tile-connection', 'Stable'), findsOneWidget, reason: 'samples arrived and none were lost');
+    });
+
+    testWidgets('a low battery, a weak Wi-Fi and no device read honestly', (t) async {
+      final s = services();
+      await show(t, s);
+      Finder tile(String k, String text) =>
+          find.descendant(of: find.byKey(ValueKey(k)), matching: find.text(text));
+      expect(tile('tile-wifi', '–'), findsOneWidget);
+      expect(tile('tile-battery', '–'), findsOneWidget);
+      expect(tile('tile-connection', 'Searching'), findsOneWidget);
+      s.status.value = const DeviceStatus(link: LinkState.connected, batteryPct: 9, rssiDbm: -82);
+      await t.pump();
+      expect(tile('tile-wifi', 'Weak'), findsOneWidget);
+      expect(tile('tile-battery', '9 %'), findsOneWidget);
+      expect(find.text('Live'), findsOneWidget);
     });
 
     testWidgets('keeps up with new data while live', (t) async {
@@ -243,11 +316,11 @@ void main() {
     });
   });
 
-  group('"Seizure now"', () {
+  group('"Mark an event"', () {
     testWidgets('with no signal it says so and marks nothing', (t) async {
       final s = services();
       await show(t, s);
-      await t.tap(find.byKey(const ValueKey('seizure-now')));
+      await tapMark(t);
       await t.pump();
       expect(find.textContaining('nothing to mark'), findsOneWidget);
       expect(s.seizureMarkers.count, 0);
@@ -258,11 +331,11 @@ void main() {
       s.status.value = connected;
       stream(s);
       await show(t, s);
-      await t.tap(find.byKey(const ValueKey('seizure-now')));
+      await tapMark(t);
       await t.pump(const Duration(milliseconds: 200));
       expect(s.seizureMarkers.count, 1);
       expect(find.textContaining('Marked at'), findsOneWidget);
-      expect(lanes(t).data.markers.map((m) => m.label), ['Seizure now']);
+      expect(lanes(t).data.markers.map((m) => m.label), ['Marked']);
     });
 
     testWidgets('markers stay when the page is left and come back to', (t) async {
@@ -270,12 +343,12 @@ void main() {
       s.status.value = connected;
       stream(s);
       await show(t, s);
-      await t.tap(find.byKey(const ValueKey('seizure-now')));
+      await tapMark(t);
       await t.pump();
       await t.pumpWidget(const SizedBox()); // the page is gone
       expect(s.seizureMarkers.count, 1);
       await show(t, s);
-      expect(lanes(t).data.markers.map((m) => m.label), ['Seizure now']);
+      expect(lanes(t).data.markers.map((m) => m.label), ['Marked']);
     });
 
     testWidgets('a device button press is drawn as "button"', (t) async {
@@ -321,7 +394,7 @@ void main() {
         r.value = ActivityRisk(null, state);
         await t.pump();
         expect(find.text(text), findsOneWidget, reason: '$state');
-        expect(find.text('–'), findsOneWidget);
+        expect(find.descendant(of: find.byKey(const ValueKey('risk-card')), matching: find.text('–')), findsOneWidget);
       }
       r.value = const ActivityRisk(9, RiskState.movement);
       await t.pump();
@@ -396,7 +469,7 @@ void main() {
       final box = t.getRect(find.byType(SignalLanes));
       await t.tapAt(Offset(box.left + 80, box.top + 40));
       await t.pump();
-      await t.tap(find.byKey(const ValueKey('seizure-now')));
+      await tapMark(t);
       await t.pump();
       expect(s.seizureMarkers.count, 1);
     });

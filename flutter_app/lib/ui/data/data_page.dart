@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,11 +14,13 @@ import '../shell/tab_scope.dart';
 import '../theme/app_theme.dart';
 import '../trace/signal_lanes.dart';
 import 'activity_risk_card.dart';
+import 'advanced_settings_page.dart';
 import 'data_controls.dart';
 import 'data_view_controller.dart';
+import 'live_status.dart';
 
-/// The live view: EEG, accelerometer and gyro, with the controls, the
-/// experimental activity-risk readout, and the "Seizure now" button.
+/// The Live tab: EEG, accelerometer and gyro, the experimental activity-risk readout,
+/// the status tiles, the "Mark an event" button, and a page of advanced settings.
 ///
 /// Portrait stacks everything; landscape gives the lanes the whole screen with the
 /// controls in a thin bar and the readout beside them; tapping a lane expands that
@@ -120,29 +121,120 @@ class _Portrait extends StatelessWidget {
 
   const _Portrait({required this.services, required this.controller, required this.onSeizure});
 
+  void _openSettings(BuildContext context) => Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => AdvancedSettingsPage(controller: controller, services: services),
+      ));
+
   @override
   Widget build(BuildContext context) {
     final risk = kShowExperimentalRisk ? services.activityRisk : null;
-    return LayoutBuilder(builder: (context, box) {
-      // On a short screen the page scrolls rather than squeezing the lanes.
-      final height = math.max(box.maxHeight, 560.0);
-      return SingleChildScrollView(
-        child: SizedBox(
-          height: height,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              DataControls(controller: controller),
-              const SizedBox(height: 10),
-              Expanded(child: LanesArea(controller: controller, status: services.status)),
-              if (risk != null) ...[const SizedBox(height: 10), ActivityRiskCard(risk: risk)],
-              const SizedBox(height: 10),
-              SeizureNowButton(onPressed: onSeizure),
-            ]),
+    final lanes = controller.data.lanes.length;
+    // Tall enough for each lane to read, whatever is shown.
+    final graphHeight = (lanes * 74.0).clamp(230.0, 380.0);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const Expanded(child: Text('Live monitoring', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700))),
+          IconButton(
+            key: const ValueKey('settings'),
+            tooltip: 'Advanced settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _openSettings(context),
+          ),
+        ]),
+        const SizedBox(height: 6),
+        _LaneTabs(controller: controller),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: LiveStatusLine(status: services.status, now: services.now)),
+          const SizedBox(width: 8),
+          ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => PillButton(
+              key: const ValueKey('pause'),
+              label: controller.paused ? 'Resume' : 'Pause',
+              icon: controller.paused ? Icons.play_arrow : Icons.pause,
+              selected: controller.paused,
+              tooltip: controller.paused ? 'Resume the live view' : 'Freeze the view',
+              onTap: controller.togglePause,
+            ),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        SizedBox(height: graphHeight, child: LanesArea(controller: controller, status: services.status)),
+        if (risk != null) ...[const SizedBox(height: 12), ActivityRiskCard(risk: risk)],
+        const SizedBox(height: 12),
+        LiveStatusTiles(status: services.status, loss: () => services.loss),
+        const SizedBox(height: 14),
+        MarkEventButton(onPressed: onSeizure),
+        const SizedBox(height: 10),
+        Material(
+          color: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            key: const ValueKey('advanced-settings'),
+            leading: const Icon(Icons.tune, color: AppColors.textSecondary),
+            title: const Text('Advanced settings'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openSettings(context),
           ),
         ),
-      );
-    });
+      ]),
+    );
+  }
+}
+
+/// All, EEG or Movement: which lanes the graph draws.
+class _LaneTabs extends StatelessWidget {
+  final DataViewController controller;
+  const _LaneTabs({required this.controller});
+
+  static const _sets = [LaneSet.all, LaneSet.eeg, LaneSet.movement];
+  static const _labels = ['All', 'EEG', 'Movement'];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(children: [
+          for (var i = 0; i < _sets.length; i++)
+            Expanded(
+              child: GestureDetector(
+                key: ValueKey('lanes-${_sets[i].name}'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => controller.setLaneSet(_sets[i]),
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color: controller.laneSet == _sets[i] ? AppColors.navy : Colors.transparent,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text(
+                    _labels[i],
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: controller.laneSet == _sets[i] ? AppColors.onNavy : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      ),
+    );
   }
 }
 
@@ -173,7 +265,7 @@ class _Landscape extends StatelessWidget {
                 fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: DataControls(controller: controller)),
           ),
           const SizedBox(width: 10),
-          SeizureNowButton(onPressed: onSeizure, compact: true),
+          MarkEventButton(onPressed: onSeizure, compact: true),
         ]),
       ),
       Expanded(
@@ -237,7 +329,7 @@ class _ExpandedView extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          SeizureNowButton(onPressed: onSeizure, compact: true),
+          MarkEventButton(onPressed: onSeizure, compact: true),
         ]),
       ),
       Expanded(

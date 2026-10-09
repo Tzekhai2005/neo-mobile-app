@@ -69,3 +69,17 @@ String deviceHeadline(LinkState link) => switch (link) {
       LinkState.stalled => 'Your device is connected but not sending data.',
       LinkState.searching => 'Looking for your device…',
     };
+
+/// "00:12:36", the time since something began.
+String elapsedText(Duration d) {
+  final t = d.isNegative ? Duration.zero : d;
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(t.inHours)}:${two(t.inMinutes % 60)}:${two(t.inSeconds % 60)}';
+}
+
+/// Wi-Fi strength in words, from the signal in dBm. A dash when the device has not said.
+String wifiWord(int? rssiDbm) {
+  if (rssiDbm == null) return unknownText;
+  final r = -rssiDbm.abs();
+  return r >= -60 ? 'Good' : (r >= -75 ? 'Fair' : 'Weak');
+}

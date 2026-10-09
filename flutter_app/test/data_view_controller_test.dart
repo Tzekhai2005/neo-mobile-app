@@ -302,7 +302,7 @@ void main() {
       markers.add(streamId: buffer.streamId, sampleIdx: end - 250, at: DateTime(2026)); // one second before the end
       c.tick();
       final m = c.data.markers.single;
-      expect(m.label, 'Seizure now');
+      expect(m.label, 'Marked');
       expect(m.t, closeTo(c.data.durationSec - 1, 0.02));
     });
 
@@ -354,7 +354,7 @@ void main() {
       expect(c.data.markers, isEmpty, reason: '12 s ago is outside a 10 s view');
       c.pause();
       c.scrollBy(6);
-      expect(c.data.markers.single.label, 'Seizure now');
+      expect(c.data.markers.single.label, 'Marked');
     });
   });
 }
